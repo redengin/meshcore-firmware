@@ -9,8 +9,7 @@ use soc_esp32::{self as _};
 use soc_esp32::log::*;
 
 // provide the esp_hal via re-export
-// use soc_esp32::{*};
-use soc_esp32::*;
+use soc_esp32::{*};
 
 // provice scheduling primitives
 // use embassy_time::{Duration, Timer};
