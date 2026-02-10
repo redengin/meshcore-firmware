@@ -1,0 +1,41 @@
+[workspace]
+resolver = "3"
+members = [
+    # shared data types
+    "common",
+
+    # hardware specific implementations
+    # "boards",
+
+    # # robot systems (traits and implementations)
+    # "systems",
+    # "systems/flight-controllers",
+
+    # # example robot simulations
+    # "robots/gazebo-quadcopter",
+]
+
+exclude = [
+    # hardware specific targets require their own workspace
+    "boards/heltec_v3",
+]
+
+[workspace.dependencies]
+log = "*"
+env_logger = "*"
+static_cell = "*"
+embedded-hal-async = "*"
+
+# embassy support
+embassy-executor = { version = "*", features = ["log"] }
+embassy-time = { version = "*", features = ["log"] }
+embassy-sync = "*"
+critical-section = "*"
+
+# # gazebo simulation support
+# gz = { version = "*", features = ["harmonic"] }
+
+# rusty-robot = { path = "common" }
+# rusty-robot-drivers = { path = "drivers" }
+# rusty-robot-systems = { path = "systems" }
+# rusty-robot-flight-controllers = { path = "systems/flight-controllers" }
