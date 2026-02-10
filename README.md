@@ -26,6 +26,6 @@ Features
     node instance.
 * support for novel `room server` nodes
     * allow owner to add `room server` agent to their node
-    * support distributed `room serice` by coordinating `room server` nodes
+    * support distributed `room service` by coordinating `room server` nodes
 
 
