@@ -37,6 +37,7 @@ async fn main(_spawner: embassy_executor::Spawner) -> ! {
     esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
 
     // initialize the bluetooth hardware
+    // https://github.com/esp-rs/esp-hal/tree/main/examples/ble/bas_peripheral
     create_heap!(); // required by radio (use 64K reclaimed from bootloader)
     let ble_connector = esp_radio::ble::controller::BleConnector::new(
         peripherals.BT,
@@ -48,6 +49,7 @@ async fn main(_spawner: embassy_executor::Spawner) -> ! {
     info!("BLE initialized");
 
     // initialize WiFi hardware
+    // https://github.com/esp-rs/esp-hal/blob/main/examples/wifi/80211_tx/
     let (mut controller, interfaces) =
         esp_radio::wifi::new(peripherals.WIFI, Default::default()).unwrap();
     controller.set_mode(esp_radio::wifi::WifiMode::Station).unwrap();
