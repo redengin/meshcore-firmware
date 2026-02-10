@@ -2,15 +2,15 @@
 #![no_main]
 
 // provide panic handler
-use soc_esp32s3::{self as _};
+use soc_esp32::{self as _};
 // use esp_backtrace as _;  // use the esp32 supplied panic handler
 
 // provide logging primitives
-use soc_esp32s3::log::{*};
+use soc_esp32::log::{*};
 
 // provide the esp_hal via re-export
 // use soc_esp32::{*};
-use soc_esp32s3::{*};
+use soc_esp32::{*};
 
 // provide heap allocator
 // use sonic_reducer_esp32::{create_heap};
@@ -18,7 +18,7 @@ use soc_esp32s3::{*};
 // provice scheduling primitives
 // use embassy_time::{Duration, Timer};
 
-#[soc_esp32s3::esp_rtos::main]
+#[soc_esp32::esp_rtos::main]
 // async fn main(spawner: soc_esp32::embassy_executor::Spawner) -> ! {
 async fn main(spawner: embassy_executor::Spawner) -> ! {
     // initialize the SoC interface

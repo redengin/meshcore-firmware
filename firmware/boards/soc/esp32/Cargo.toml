@@ -18,35 +18,55 @@ embassy-executor = { version = "*", features = ["log"] }
 [dependencies.esp-hal]
 git = "https://github.com/esp-rs/esp-hal"
 # features = ["log-04", "unstable"]
-features = ["unstable", "esp32"]
+features = ["unstable"]
 
 # provide println driver for logging
 [dependencies.esp-println]
 git = "https://github.com/esp-rs/esp-hal"
-features = ["log-04", "esp32"]
+features = ["log-04"]
 
 # (optional) provide ESP32 supplied panic handler
 [dependencies.esp-backtrace]
 git = "https://github.com/esp-rs/esp-hal"
-features = ["println", "colors", "esp32"]
+features = ["println", "colors"]
 
 # support ESP32 rtos
 [dependencies.esp-rtos]
 git = "https://github.com/esp-rs/esp-hal"
-features = ["embassy", "esp-radio", "esp-alloc", "esp32"]
+features = ["embassy", "esp-radio", "esp-alloc"]
 
 # support ESP32 radio
 [dependencies.esp-radio]
 git = "https://github.com/esp-rs/esp-hal"
-features = ["unstable", "esp32"]
+features = ["unstable"]
 # alloc required by esp-radio
 [dependencies.esp-alloc]
 git = "https://github.com/esp-rs/esp-hal"
 features = [
     # "internal-heap-stats",  # used to debug memory leaks in esp32 HAL radio
-    "esp32",
 ]
 # support reclaiming bootloader RAM for esp-alloc
 [dependencies.esp-bootloader-esp-idf]
 git = "https://github.com/esp-rs/esp-hal"
-features = ["esp32"]
+
+
+[features]
+esp32 = [
+    "esp-hal/esp32",
+    "esp-println/esp32",
+    "esp-backtrace/esp32",
+    "esp-rtos/esp32",
+    "esp-radio/esp32",
+    "esp-alloc/esp32",
+    "esp-bootloader-esp-idf/esp32",
+]
+
+esp32s3 = [
+    "esp-hal/esp32s3",
+    "esp-println/esp32s3",
+    "esp-backtrace/esp32s3",
+    "esp-rtos/esp32s3",
+    "esp-radio/esp32s3",
+    "esp-alloc/esp32s3",
+    "esp-bootloader-esp-idf/esp32s3",
+]

@@ -1023,7 +1023,7 @@ dependencies = [
  "embassy-executor",
  "esp-hal",
  "esp-rtos",
- "soc-esp32s3",
+ "soc-esp32",
 ]
 
 [[package]]
@@ -1303,7 +1303,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "soc-esp32s3"
+name = "soc-esp32"
 version = "0.1.0"
 dependencies = [
  "embassy-executor",
