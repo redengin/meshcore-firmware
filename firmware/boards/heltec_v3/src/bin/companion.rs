@@ -21,14 +21,14 @@ use soc_esp32::{*};
 // async fn main(spawner: soc_esp32::embassy_executor::Spawner) -> ! {
 async fn main(spawner: embassy_executor::Spawner) -> ! {
     // initialize the SoC interface
-    // let peripherals = esp_hal::init(
-    //     // max out clock to support radio
-    //     esp_hal::Config::default().with_cpu_clock(esp_hal::clock::CpuClock::max()),
-    // );
+    let peripherals = esp_hal::init(
+        // max out clock to support radio
+        esp_hal::Config::default().with_cpu_clock(esp_hal::clock::CpuClock::max()),
+    );
 
     // initialize logging
     esp_println::logger::init_logger_from_env();
-    info!("initializing");
+    info!("initializing...");
 
     // // initialize the rtos
     // use esp_hal::timer::timg::TimerGroup;
