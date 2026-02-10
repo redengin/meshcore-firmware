@@ -1,10 +1,11 @@
 #![no_std]
 
-pub use log::*;
+pub use log;
+pub use esp_println;
 pub use esp_rtos;
 pub use embassy_executor;
 
-
+use log::*;
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {

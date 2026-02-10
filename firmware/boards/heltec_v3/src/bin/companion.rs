@@ -5,10 +5,11 @@
 use soc_esp32::{self as _};
 // use esp_backtrace as _;  // use the esp32 supplied panic handler
 
-// use soc_esp32::{*};
-
 // provide logging primitives
-// use log::*;
+use soc_esp32::log::{*};
+
+// provide the esp_hal via re-export
+use soc_esp32::{*};
 
 // provide heap allocator
 // use sonic_reducer_esp32::{create_heap};
@@ -16,19 +17,18 @@ use soc_esp32::{self as _};
 // provice scheduling primitives
 // use embassy_time::{Duration, Timer};
 
-// #[esp_rtos::main]
 #[soc_esp32::esp_rtos::main]
 // async fn main(spawner: soc_esp32::embassy_executor::Spawner) -> ! {
 async fn main(spawner: embassy_executor::Spawner) -> ! {
-    // // initialize the SoC interface
+    // initialize the SoC interface
     // let peripherals = esp_hal::init(
     //     // max out clock to support radio
     //     esp_hal::Config::default().with_cpu_clock(esp_hal::clock::CpuClock::max()),
     // );
 
-    // // initialize logging
-    // esp_println::logger::init_logger_from_env();
-    // info!("initializing");
+    // initialize logging
+    esp_println::logger::init_logger_from_env();
+    info!("initializing");
 
     // // initialize the rtos
     // use esp_hal::timer::timg::TimerGroup;
