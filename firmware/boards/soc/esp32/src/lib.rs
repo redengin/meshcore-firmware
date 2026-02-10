@@ -4,6 +4,7 @@ pub use log;
 pub use esp_println;
 pub use esp_rtos;
 pub use embassy_executor;
+pub use esp_alloc;
 
 use log::*;
 
@@ -37,6 +38,6 @@ macro_rules! create_heap {
     // provide 64K heap (reclaimed from bootloader)
     () => {
         const BOOTLOADER_RAM_SZ: usize = 64 * 1024;
-        esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: BOOTLOADER_RAM_SZ);
+        crate::esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: BOOTLOADER_RAM_SZ);
     };
 }
