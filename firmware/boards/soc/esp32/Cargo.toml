@@ -9,7 +9,7 @@ publish = false
 log = "*"
 
 embassy-executor = { version = "*", features = ["log"] }
-# embassy-time = { version = "*", features = ["log"] }
+embassy-time = { version = "*", features = ["log"] }
 # embassy-sync = "*"
 # critical-section = "*"
 
@@ -38,7 +38,7 @@ features = ["embassy", "esp-radio", "esp-alloc"]
 # support ESP32 radio
 [dependencies.esp-radio]
 git = "https://github.com/esp-rs/esp-hal"
-features = ["unstable"]
+features = ["unstable", "ble", "wifi"]
 # alloc required by esp-radio
 [dependencies.esp-alloc]
 git = "https://github.com/esp-rs/esp-hal"
