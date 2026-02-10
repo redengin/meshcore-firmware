@@ -6,7 +6,8 @@ edition = "2024"
 publish = false
 
 [dependencies]
-soc-esp32 = {path = "../soc/esp32"}
+# soc-esp32 = {path = "../soc/esp32"}
+soc-esp32s3 = {path = "../soc/esp32s3"}
 
 # FIXME - the following dependencies must exist for esp-rs to build executable
 #-------------------------------------------------------------------------------
@@ -15,12 +16,12 @@ embassy-executor = { version = "*", features = ["log"] }
 [dependencies.esp-hal]
 git = "https://github.com/esp-rs/esp-hal"
 # features = ["log-04", "unstable"]
-features = ["unstable", "esp32"]
+features = ["unstable", "esp32s3"]
 
 # support ESP32 rtos
 [dependencies.esp-rtos]
 git = "https://github.com/esp-rs/esp-hal"
-features = ["embassy", "esp-radio", "esp-alloc", "esp32"]
+features = ["embassy", "esp-radio", "esp-alloc", "esp32s3"]
 #-------------------------------------------------------------------------------
 
 

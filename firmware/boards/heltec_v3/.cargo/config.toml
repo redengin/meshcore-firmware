@@ -8,7 +8,7 @@ runner = "espflash flash --monitor --chip esp32 --baud 460800"
 ESP_LOG="info"
 
 [build]
-target = "xtensa-esp32-none-elf"
+target = "xtensa-esp32s3-none-elf"
 rustflags = [
   "-C", "link-arg=-nostartfiles",
 ]
