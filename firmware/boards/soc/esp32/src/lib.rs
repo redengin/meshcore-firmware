@@ -1,14 +1,13 @@
 #![no_std]
 
-pub use log;
-pub use esp_rtos;
 pub use embassy_executor;
-pub use embassy_time::{Timer, Duration};
+pub use embassy_time::{Duration, Timer};
 pub use esp_alloc;
 pub use esp_radio;
+pub use esp_rtos;
+pub use log;
 
 pub use esp_println;
-
 
 use log::*;
 
@@ -44,4 +43,16 @@ macro_rules! create_heap {
         const BOOTLOADER_RAM_SZ: usize = 64 * 1024;
         crate::esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: BOOTLOADER_RAM_SZ);
     };
+}
+
+/// initialize the SoC
+/// * initialize logging
+/// * provide BLE and WiFi support
+pub fn init() -> (esp_hal::peripherals::Peripherals) {
+    let peripherals = esp_hal::init(
+        // max out clock to support radio
+        esp_hal::Config::default().with_cpu_clock(esp_hal::clock::CpuClock::max()),
+    );
+
+    return peripherals;
 }
