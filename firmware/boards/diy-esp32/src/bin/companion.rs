@@ -17,6 +17,8 @@ use soc_esp32::{*};
 #[soc_esp32::esp_rtos::main]
 // async fn main(spawner: soc_esp32::embassy_executor::Spawner) -> ! {
 async fn main(_spawner: embassy_executor::Spawner) -> ! {
+// TODO move this into an soc_esp32::init()
+//------------------------------------------------------------------------------
     // initialize the SoC interface
     let peripherals = esp_hal::init(
         // max out clock to support radio
@@ -43,6 +45,16 @@ async fn main(_spawner: embassy_executor::Spawner) -> ! {
     ).unwrap();
     // FIXME need a BLE service
     // let ble_controller = esp_radio::ble::controller::ExternalController::new(ble_connector);
+    info!("BLE initialized");
+
+    // initialize WiFi hardware
+    let (mut controller, interfaces) =
+        esp_radio::wifi::new(peripherals.WIFI, Default::default()).unwrap();
+    controller.set_mode(esp_radio::wifi::WifiMode::Station).unwrap();
+    controller.start_async().await.unwrap();
+    info!("WiFi initialized");
+
+//------------------------------------------------------------------------------
 
     loop {
         info!("Hello world!");
