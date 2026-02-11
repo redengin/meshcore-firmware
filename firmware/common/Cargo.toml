@@ -5,3 +5,7 @@ license = "MIT"
 edition = "2024"
 
 
+[dependencies]
+
+# provide LORA radio drivers
+lora-phy = "*"

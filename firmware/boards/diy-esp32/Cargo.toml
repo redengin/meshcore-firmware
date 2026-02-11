@@ -6,7 +6,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
-soc-esp32 = {path = "../soc/esp32", features = ["esp32"]}
+soc-esp32 = {path = "../../soc/esp32", features = ["esp32"]}
 
 # FIXME - the following dependencies must exist for esp-rs to build executable
 #-------------------------------------------------------------------------------

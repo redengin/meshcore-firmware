@@ -1,6 +1,10 @@
-Meshcore firmware for Heltec v3
+Meshcore firmware for DIY ESP32 based device
 ================================================================================
-[Heltec LoRa 32 (v3)](https://heltec.org/project/wifi-lora-32-v3/)
+This is a a template for creating ESP32 based devices. Users will need to
+* map pins to peripherals
+* configure services per the hardware implementation
+    * for BLE, if there is no screen a statically configured PIN Code will be used.
+    * intitialize a LORA device driver for the chosen device
 
 ## Usage
 ```sh
