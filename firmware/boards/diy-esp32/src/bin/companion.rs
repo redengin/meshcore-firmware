@@ -9,16 +9,16 @@ use soc_esp32::{self as _};
 use soc_esp32::log::*;
 
 // provide the esp_hal via re-export
-use soc_esp32::{*};
+use soc_esp32::*;
 
 // provice scheduling primitives
 // use embassy_time::{Duration, Timer};
 
 #[soc_esp32::esp_rtos::main]
 // async fn main(spawner: soc_esp32::embassy_executor::Spawner) -> ! {
-async fn main(_spawner: embassy_executor::Spawner) -> ! {
-// TODO move this into an soc_esp32::init()
-//------------------------------------------------------------------------------
+async fn main(spawner: embassy_executor::Spawner) -> ! {
+    // TODO move this into an soc_esp32::init()
+    //------------------------------------------------------------------------------
     // initialize the SoC interface
     let peripherals = esp_hal::init(
         // max out clock to support radio
@@ -41,22 +41,23 @@ async fn main(_spawner: embassy_executor::Spawner) -> ! {
     create_heap!(); // required by radio (use 64K reclaimed from bootloader)
     let ble_connector = esp_radio::ble::controller::BleConnector::new(
         peripherals.BT,
-        esp_radio::ble::Config::default()
-            .with_max_connections(1)
-    ).unwrap();
-    // FIXME need a BLE service
-    // let ble_controller = esp_radio::ble::controller::ExternalController::new(ble_connector);
+        esp_radio::ble::Config::default().with_max_connections(1),
+    )
+    .unwrap();
     info!("BLE initialized");
+    spawner.spawn(task_ble_host(ble_connector)).unwrap();
 
     // initialize WiFi hardware
     // https://github.com/esp-rs/esp-hal/blob/main/examples/wifi/80211_tx/
-    let (mut controller, interfaces) =
+    let (mut wifi_controller, _interfaces) =
         esp_radio::wifi::new(peripherals.WIFI, Default::default()).unwrap();
-    controller.set_mode(esp_radio::wifi::WifiMode::Station).unwrap();
-    controller.start_async().await.unwrap();
+    wifi_controller
+        .set_mode(esp_radio::wifi::WifiMode::Station)
+        .unwrap();
+    wifi_controller.start_async().await.unwrap();
     info!("WiFi initialized");
 
-//------------------------------------------------------------------------------
+    //------------------------------------------------------------------------------
 
     loop {
         info!("Hello world!");
@@ -64,10 +65,32 @@ async fn main(_spawner: embassy_executor::Spawner) -> ! {
     }
 }
 
-// #[embassy_executor::task]
-// async fn task_modulator() -> ! {
-//     loop {
-//         info!("modulating");
-//         Timer::after(Duration::from_secs(1)).await;
-//     }
-// }
+#[embassy_executor::task]
+async fn task_ble_host(ble_connector: esp_radio::ble::controller::BleConnector<'static>) {
+    /// Max number of connections
+    const CONNECTIONS_MAX: usize = 1;
+    /// Max number of L2CAP channels.
+    const L2CAP_CHANNELS_MAX: usize = 2; // Signal + att
+
+    // create the BLE Host controller (i.e trouble_host)
+    use trouble_host::prelude::*;
+    let ble_controller: ExternalController<_, 1> = ExternalController::new(ble_connector);
+
+    // configure trouble_host
+    let mut resources: HostResources<DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
+        HostResources::new();
+    let mac = esp_hal::efuse::Efuse::mac_address();
+    let stack =
+        trouble_host::new(ble_controller, &mut resources).set_random_address(Address::random(mac));
+    let Host {
+        mut peripheral,
+        runner,
+        ..
+    } = stack.build();
+
+    info!("Starting advertising and GATT service");
+    // TODO implement
+
+
+    error!("BLE host stopped");
+}

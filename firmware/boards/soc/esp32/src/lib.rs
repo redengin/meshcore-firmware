@@ -1,13 +1,17 @@
 #![no_std]
 
-pub use embassy_executor;
-pub use embassy_time::{Duration, Timer};
-pub use esp_alloc;
-pub use esp_radio;
-pub use esp_rtos;
 pub use log;
-
 pub use esp_println;
+
+pub use embassy_executor;
+// pub use embassy_futures;
+pub use embassy_time::{Duration, Timer};
+
+pub use esp_rtos;
+pub use esp_radio;
+pub use esp_alloc;
+pub use trouble_host;
+
 
 use log::*;
 
