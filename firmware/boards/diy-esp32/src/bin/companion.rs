@@ -65,6 +65,8 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     }
 }
 
+
+// FIXME is trouble_host able to be used commonly across hardware?
 #[embassy_executor::task]
 async fn task_ble_host(ble_connector: esp_radio::ble::controller::BleConnector<'static>) {
     /// Max number of connections
