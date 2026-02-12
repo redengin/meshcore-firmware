@@ -1,9 +1,10 @@
 #![no_std]
 #![no_main]
 
+use common::trouble_host::peripheral;
 // provide the shared crates via re-export
 use common::*;
-use soc_esp32::*;    // provides the panic handler
+use soc_esp32::*; // provides the panic handler
 
 // provide logging primitives
 use log::*;
@@ -11,7 +12,7 @@ use log::*;
 // provice scheduling primitives
 use common::embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use common::embassy_sync::mutex::Mutex;
-use common::embassy_time::{Duration, Timer, Delay};
+use common::embassy_time::{Delay, Duration, Timer};
 
 /// LoRa radio SPI bus
 static LORA_SPI_BUS: static_cell::StaticCell<
@@ -21,7 +22,6 @@ static LORA_SPI_BUS: static_cell::StaticCell<
 #[soc_esp32::esp_rtos::main]
 // async fn main(spawner: soc_esp32::embassy_executor::Spawner) -> ! {
 async fn main(spawner: embassy_executor::Spawner) -> ! {
-
     // initialize the SoC interface
     let peripherals = esp_hal::init(
         // max out clock to support radio
@@ -40,12 +40,16 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
 
     // initialize LoRa radio
+    //==============================================================================
     info!("initializing LoRA radio...");
     // the following initializes a heltec v3 sx1262
     // heltec v3 pins https://heltec.org/wp-content/uploads/2023/09/pin.png
     //--------------------------------------------------------------------------
+    info!("creating lora_nss");
     let lora_nss = esp_hal::gpio::Output::new(
-        peripherals.GPIO8,
+        // peripherals.GPIO8,
+        // FIXME GPIO8 not allowed on esp32 (hangs rather than panics), so remapping
+        peripherals.GPIO26,
         esp_hal::gpio::Level::High,
         esp_hal::gpio::OutputConfig::default(),
     );
@@ -73,12 +77,15 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     .with_mosi(lora_mosi)
     .with_miso(lora_miso)
     .into_async();
+    info!("LoRa SPI initialized");
     let lora_spi_bus = LORA_SPI_BUS.init(Mutex::new(lora_spi));
-    let lora_spi_device = embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice::new(lora_spi_bus, lora_nss);
+    let lora_spi_device =
+        embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice::new(lora_spi_bus, lora_nss);
     // create a radio instance
-    let lora_interface =
-        lora_phy::iv::GenericSx126xInterfaceVariant::new(lora_reset, lora_dio1, lora_busy, None, None)
-            .unwrap();
+    let lora_interface = lora_phy::iv::GenericSx126xInterfaceVariant::new(
+        lora_reset, lora_dio1, lora_busy, None, None,
+    )
+    .unwrap();
     let sx126x_config = lora_phy::sx126x::Config {
         chip: lora_phy::sx126x::Sx1262,
         // TODO are these the correct parameters?
@@ -88,14 +95,16 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
         rx_boost: true,
         //----------------------------------------------------------------------
     };
-    let mut lora_radio = lora_phy::LoRa::new(
-        lora_phy::sx126x::Sx126x::new(lora_spi_device, lora_interface, sx126x_config),
-        false,
-        Delay,
-    )
-    .await
-    .unwrap();
+    // FIXME disabling as I have no radio for development
+    // let mut lora_radio = lora_phy::LoRa::new(
+    //     lora_phy::sx126x::Sx126x::new(lora_spi_device, lora_interface, sx126x_config),
+    //     false,
+    //     Delay,
+    // )
+    // .await
+    // .unwrap();
     info!("LoRa radio initialized");
+    //==============================================================================
 
     // initialize the bluetooth hardware
     // https://github.com/esp-rs/esp-hal/tree/main/examples/ble/bas_peripheral
