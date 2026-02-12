@@ -128,7 +128,7 @@ version = "0.1.0"
 dependencies = [
  "embassy-embedded-hal 0.3.2",
  "embassy-executor",
- "embassy-sync 0.7.2",
+ "embassy-sync 0.6.2",
  "embassy-time 0.5.0",
  "log",
  "lora-phy",
@@ -486,6 +486,7 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "heapless 0.8.0",
+ "log",
 ]
 
 [[package]]
@@ -500,7 +501,6 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "heapless 0.8.0",
- "log",
 ]
 
 [[package]]

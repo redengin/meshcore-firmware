@@ -19,7 +19,9 @@ static_cell = "*"
 #-------------------------------------------------------------------------------
 embassy-executor = { version = "*", features = ["log"] }
 embassy-time = { version = "*", features = ["log"] }
-embassy-sync = { version = "*", features = ["log"] }
+# embassy-sync = { version = "*", features = ["log"] }
+# FIXME lora-phy requires older embedded-sync crate
+embassy-sync = { version="0.6.2", features = ["log"] }
 embassy-embedded-hal = "*"
 
 # embassy-futures = "*"
