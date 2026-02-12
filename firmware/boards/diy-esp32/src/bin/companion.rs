@@ -1,13 +1,9 @@
 #![no_std]
 #![no_main]
 
-// provide panic handler
-use soc_esp32::{self as _};
-// use soc_esp32::esp_backtrace as _;  // use the esp32 supplied panic handler
-
 // provide the shared crates via re-export
 use common::*;
-use soc_esp32::*;
+use soc_esp32::*;    // provides the panic handler
 
 // provide logging primitives
 use log::*;
@@ -25,6 +21,7 @@ static LORA_SPI_BUS: static_cell::StaticCell<
 #[soc_esp32::esp_rtos::main]
 // async fn main(spawner: soc_esp32::embassy_executor::Spawner) -> ! {
 async fn main(spawner: embassy_executor::Spawner) -> ! {
+
     // initialize the SoC interface
     let peripherals = esp_hal::init(
         // max out clock to support radio

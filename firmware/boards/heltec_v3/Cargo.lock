@@ -103,10 +103,13 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 name = "common"
 version = "0.1.0"
 dependencies = [
+ "embassy-embedded-hal",
  "embassy-executor",
+ "embassy-sync 0.6.2",
  "embassy-time",
  "log",
  "lora-phy",
+ "static_cell",
  "trouble-host",
 ]
 
@@ -415,6 +418,7 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "heapless 0.8.0",
+ "log",
 ]
 
 [[package]]

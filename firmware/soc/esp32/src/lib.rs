@@ -2,6 +2,7 @@
 
 // pub use log;
 pub use esp_println;
+pub use esp_backtrace;
 pub use esp_rtos;
 pub use esp_radio;
 pub use esp_alloc;
