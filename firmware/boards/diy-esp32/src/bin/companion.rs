@@ -43,6 +43,7 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
 
     // initialize LoRa radio
+    info!("initializing LoRA radio...");
     // the following initializes a heltec v3 sx1262
     // heltec v3 pins https://heltec.org/wp-content/uploads/2023/09/pin.png
     //--------------------------------------------------------------------------
@@ -97,10 +98,7 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     )
     .await
     .unwrap();
-
-
-
-
+    info!("LoRa radio initialized");
 
     // initialize the bluetooth hardware
     // https://github.com/esp-rs/esp-hal/tree/main/examples/ble/bas_peripheral
