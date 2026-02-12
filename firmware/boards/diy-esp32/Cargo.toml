@@ -1,5 +1,5 @@
 [package]
-name = "meshcore-firmware-heltec-v3"
+name = "meshcore-firmware-diy-esp32"
 version = "0.1.0"
 license = "MIT"
 edition = "2024"
