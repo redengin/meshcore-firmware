@@ -5,14 +5,15 @@
 use soc_esp32::{self as _};
 // use soc_esp32::esp_backtrace as _;  // use the esp32 supplied panic handler
 
-// provide logging primitives
-use soc_esp32::log::*;
-
-// provide the esp_hal via re-export
+// provide the shared crates via re-export
+use common::*;
 use soc_esp32::*;
 
+// provide logging primitives
+use log::*;
+
 // provice scheduling primitives
-// use embassy_time::{Duration, Timer};
+use common::embassy_time::{Duration, Timer};
 
 #[soc_esp32::esp_rtos::main]
 // async fn main(spawner: soc_esp32::embassy_executor::Spawner) -> ! {
@@ -65,34 +66,32 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     }
 }
 
-
 // FIXME is trouble_host able to be used commonly across hardware?
 #[embassy_executor::task]
-async fn task_ble_host(ble_connector: esp_radio::ble::controller::BleConnector<'static>) {
-    /// Max number of connections
-    const CONNECTIONS_MAX: usize = 1;
-    /// Max number of L2CAP channels.
-    const L2CAP_CHANNELS_MAX: usize = 2; // Signal + att
+async fn task_ble_host(_ble_connector: esp_radio::ble::controller::BleConnector<'static>) {
+    // /// Max number of connections
+    // const CONNECTIONS_MAX: usize = 1;
+    // /// Max number of L2CAP channels.
+    // const L2CAP_CHANNELS_MAX: usize = 2; // Signal + att
 
-    // create the BLE Host controller (i.e trouble_host)
-    use trouble_host::prelude::*;
-    let ble_controller: ExternalController<_, 1> = ExternalController::new(ble_connector);
+    // // create the BLE Host controller (i.e trouble_host)
+    // use trouble_host::prelude::*;
+    // let ble_controller: ExternalController<_, 1> = ExternalController::new(ble_connector);
 
-    // configure trouble_host
-    let mut resources: HostResources<DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
-        HostResources::new();
-    let mac = esp_hal::efuse::Efuse::mac_address();
-    let stack =
-        trouble_host::new(ble_controller, &mut resources).set_random_address(Address::random(mac));
-    let Host {
-        mut peripheral,
-        runner,
-        ..
-    } = stack.build();
+    // // configure trouble_host
+    // let mut resources: HostResources<DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
+    //     HostResources::new();
+    // let mac = esp_hal::efuse::Efuse::mac_address();
+    // let stack =
+    //     trouble_host::new(ble_controller, &mut resources).set_random_address(Address::random(mac));
+    // let Host {
+    //     mut peripheral,
+    //     runner,
+    //     ..
+    // } = stack.build();
 
     info!("Starting advertising and GATT service");
     // TODO implement
-
 
     error!("BLE host stopped");
 }

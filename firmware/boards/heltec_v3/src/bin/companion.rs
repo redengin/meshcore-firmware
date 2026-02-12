@@ -5,11 +5,12 @@
 use soc_esp32::{self as _};
 // use soc_esp32::esp_backtrace as _;  // use the esp32 supplied panic handler
 
-// provide logging primitives
-use soc_esp32::log::*;
+// provide the shared crates via re-export
+use common::*;
+use soc_esp32::*;
 
-// provide the esp_hal via re-export
-use soc_esp32::{*};
+// provide logging primitives
+use log::*;
 
 // provice scheduling primitives
 // use embassy_time::{Duration, Timer};

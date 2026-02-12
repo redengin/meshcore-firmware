@@ -1,19 +1,12 @@
 #![no_std]
 
-pub use log;
+// pub use log;
 pub use esp_println;
-
-pub use embassy_executor;
-// pub use embassy_futures;
-pub use embassy_time::{Duration, Timer};
-
 pub use esp_rtos;
 pub use esp_radio;
 pub use esp_alloc;
-pub use trouble_host;
 
-
-use log::*;
+use common::log::*;
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
@@ -49,14 +42,14 @@ macro_rules! create_heap {
     };
 }
 
-/// initialize the SoC
-/// * initialize logging
-/// * provide BLE and WiFi support
-pub fn init() -> (esp_hal::peripherals::Peripherals) {
-    let peripherals = esp_hal::init(
-        // max out clock to support radio
-        esp_hal::Config::default().with_cpu_clock(esp_hal::clock::CpuClock::max()),
-    );
-
-    return peripherals;
-}
+// /// initialize the SoC
+// /// * initialize logging
+// /// * provide BLE and WiFi support
+// TODO
+// pub fn init() -> (esp_hal::peripherals::Peripherals) {
+//     let peripherals = esp_hal::init(
+//         // max out clock to support radio
+//         esp_hal::Config::default().with_cpu_clock(esp_hal::clock::CpuClock::max()),
+//     );
+//     return peripherals;
+// }

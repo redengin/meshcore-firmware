@@ -6,20 +6,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
-log = "*"
-
-embassy-executor = { version = "*", features = ["log"] }
-embassy-time = { version = "*", features = ["log"] }
-# embassy-futures = "*"
-# embassy-sync = "*"
-# critical-section = "*"
-
-# BLE service
-trouble-host = { version = "*", features = [
-    "default-packet-pool-mtu-255",
-    "derive",
-    "scan",
-] }
+common = { path = "../../common" }
 
 # ESP32 cargo using git (rather than cargo version)
 # - as cargo release isn't great for WiFi/Bluetooth
