@@ -9,11 +9,27 @@ publish = false
 [dependencies]
 log = "*"
 
+# embedded utils
+#-------------------------------------------------------------------------------
+# critical-section = "*"
+static_cell = "*"
+#-------------------------------------------------------------------------------
+
+# use the embassay RTOS
+#-------------------------------------------------------------------------------
 embassy-executor = { version = "*", features = ["log"] }
 embassy-time = { version = "*", features = ["log"] }
+embassy-sync = { version = "*", features = ["log"] }
+embassy-embedded-hal = "*"
+
 # embassy-futures = "*"
-# embassy-sync = "*"
-# critical-section = "*"
+#-------------------------------------------------------------------------------
+
+# Hardware drivers
+#-------------------------------------------------------------------------------
+# provide LORA radio drivers
+lora-phy = "*"
+#-------------------------------------------------------------------------------
 
 # BLE service
 trouble-host = { version = "*", features = [
@@ -21,8 +37,3 @@ trouble-host = { version = "*", features = [
     "derive",
     "scan",
 ] }
-
-
-
-# provide LORA radio drivers
-lora-phy = "*"

@@ -13,13 +13,18 @@ use soc_esp32::*;
 use log::*;
 
 // provice scheduling primitives
+use common::embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use common::embassy_sync::mutex::Mutex;
 use common::embassy_time::{Duration, Timer};
+
+/// LoRa radio SPI bus
+static LORA_SPI_BUS: static_cell::StaticCell<
+    Mutex<CriticalSectionRawMutex, esp_hal::spi::master::Spi<'static, esp_hal::Async>>,
+> = static_cell::StaticCell::new();
 
 #[soc_esp32::esp_rtos::main]
 // async fn main(spawner: soc_esp32::embassy_executor::Spawner) -> ! {
 async fn main(spawner: embassy_executor::Spawner) -> ! {
-    // TODO move this into an soc_esp32::init()
-    //------------------------------------------------------------------------------
     // initialize the SoC interface
     let peripherals = esp_hal::init(
         // max out clock to support radio
@@ -36,6 +41,51 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     use esp_hal::interrupt::software::SoftwareInterruptControl;
     let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
     esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
+
+    // initialize LoRa radio
+    // the following initializes a heltec v3 sx1262
+    // heltec v3 pins https://heltec.org/wp-content/uploads/2023/09/pin.png
+    let lora_nss = esp_hal::gpio::Output::new(
+        peripherals.GPIO8,
+        esp_hal::gpio::Level::High,
+        esp_hal::gpio::OutputConfig::default(),
+    );
+    let lora_sck = peripherals.GPIO9;
+    let lora_mosi = peripherals.GPIO10;
+    let lora_miso = peripherals.GPIO11;
+    let lora_reset = esp_hal::gpio::Output::new(
+        peripherals.GPIO12,
+        esp_hal::gpio::Level::Low,
+        esp_hal::gpio::OutputConfig::default(),
+    );
+    let lora_busy =
+        esp_hal::gpio::Input::new(peripherals.GPIO13, esp_hal::gpio::InputConfig::default());
+    let lora_dio1 =
+        esp_hal::gpio::Input::new(peripherals.GPIO14, esp_hal::gpio::InputConfig::default());
+    let lora_spi = esp_hal::spi::master::Spi::new(
+        peripherals.SPI2,
+        esp_hal::spi::master::Config::default()
+            .with_frequency(esp_hal::time::Rate::from_khz(100))
+            .with_mode(esp_hal::spi::Mode::_0),
+    )
+    .unwrap()
+    .with_sck(lora_sck)
+    .with_mosi(lora_mosi)
+    .with_miso(lora_miso)
+    .into_async();
+    let lora_spi_bus = LORA_SPI_BUS.init(Mutex::new(lora_spi));
+    let lora_spi_device = embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice::new(lora_spi_bus, lora_nss);
+
+    // let iv =
+    //     lora_phy::iv::GenericSx126xInterfaceVariant::new(lora_reset, lora_dio1, lora_busy, None, None)
+    //         .unwrap();
+    // let mut lora = lora_phy::LoRa::new(
+    //     lora_phy::sx126x::Sx126x::new(spi_device, iv, sx126x_config),
+    //     false,
+    //     Delay,
+    // )
+    // .await
+    // .unwrap();
 
     // initialize the bluetooth hardware
     // https://github.com/esp-rs/esp-hal/tree/main/examples/ble/bas_peripheral

@@ -42,14 +42,18 @@ macro_rules! create_heap {
     };
 }
 
-// /// initialize the SoC
 // /// * initialize logging
-// /// * provide BLE and WiFi support
-// TODO
-// pub fn init() -> (esp_hal::peripherals::Peripherals) {
-//     let peripherals = esp_hal::init(
-//         // max out clock to support radio
-//         esp_hal::Config::default().with_cpu_clock(esp_hal::clock::CpuClock::max()),
-//     );
-//     return peripherals;
+// /// * initialize scheduler
+// pub fn init(peripherals: esp_hal)
+// {
+//     // initialize logging
+//     esp_println::logger::init_logger_from_env();
+//     info!("initializing...");
+
+//     // initialize the rtos scheduler
+//     use esp_hal::timer::timg::TimerGroup;
+//     let timg0 = TimerGroup::new(peripherals.TIMG0);
+//     use esp_hal::interrupt::software::SoftwareInterruptControl;
+//     let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
+//     esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
 // }
