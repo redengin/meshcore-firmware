@@ -15,7 +15,7 @@ use log::*;
 // provice scheduling primitives
 use common::embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use common::embassy_sync::mutex::Mutex;
-use common::embassy_time::{Duration, Timer};
+use common::embassy_time::{Duration, Timer, Delay};
 
 /// LoRa radio SPI bus
 static LORA_SPI_BUS: static_cell::StaticCell<
@@ -75,17 +75,29 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     .into_async();
     let lora_spi_bus = LORA_SPI_BUS.init(Mutex::new(lora_spi));
     let lora_spi_device = embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice::new(lora_spi_bus, lora_nss);
+    let lora_interface =
+        lora_phy::iv::GenericSx126xInterfaceVariant::new(lora_reset, lora_dio1, lora_busy, None, None)
+            .unwrap();
+    let sx126x_config = lora_phy::sx126x::Config {
+        chip: lora_phy::sx126x::Sx1262,
+        // TODO are these the correct parameters?
+        //----------------------------------------------------------------------
+        tcxo_ctrl: Some(lora_phy::sx126x::TcxoCtrlVoltage::Ctrl1V7),
+        use_dcdc: false,
+        rx_boost: true,
+        //----------------------------------------------------------------------
+    };
+    let mut lora_radio = lora_phy::LoRa::new(
+        lora_phy::sx126x::Sx126x::new(lora_spi_device, lora_interface, sx126x_config),
+        false,
+        Delay,
+    )
+    .await
+    .unwrap();
 
-    // let iv =
-    //     lora_phy::iv::GenericSx126xInterfaceVariant::new(lora_reset, lora_dio1, lora_busy, None, None)
-    //         .unwrap();
-    // let mut lora = lora_phy::LoRa::new(
-    //     lora_phy::sx126x::Sx126x::new(spi_device, iv, sx126x_config),
-    //     false,
-    //     Delay,
-    // )
-    // .await
-    // .unwrap();
+
+
+
 
     // initialize the bluetooth hardware
     // https://github.com/esp-rs/esp-hal/tree/main/examples/ble/bas_peripheral
