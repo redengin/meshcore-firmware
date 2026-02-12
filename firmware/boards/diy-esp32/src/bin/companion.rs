@@ -45,6 +45,7 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     // initialize LoRa radio
     // the following initializes a heltec v3 sx1262
     // heltec v3 pins https://heltec.org/wp-content/uploads/2023/09/pin.png
+    //--------------------------------------------------------------------------
     let lora_nss = esp_hal::gpio::Output::new(
         peripherals.GPIO8,
         esp_hal::gpio::Level::High,
@@ -62,6 +63,7 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
         esp_hal::gpio::Input::new(peripherals.GPIO13, esp_hal::gpio::InputConfig::default());
     let lora_dio1 =
         esp_hal::gpio::Input::new(peripherals.GPIO14, esp_hal::gpio::InputConfig::default());
+    //--------------------------------------------------------------------------
     let lora_spi = esp_hal::spi::master::Spi::new(
         peripherals.SPI2,
         esp_hal::spi::master::Config::default()
@@ -75,6 +77,7 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     .into_async();
     let lora_spi_bus = LORA_SPI_BUS.init(Mutex::new(lora_spi));
     let lora_spi_device = embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice::new(lora_spi_bus, lora_nss);
+    // create a radio instance
     let lora_interface =
         lora_phy::iv::GenericSx126xInterfaceVariant::new(lora_reset, lora_dio1, lora_busy, None, None)
             .unwrap();
