@@ -1,0 +1,16 @@
+[package]
+name = "nostd-meshcore"
+version = "0.1.0"
+license = "MIT"
+edition = "2024"
+
+[dependencies]
+log = { version = "*", optional = true }
+defmt = { version = "*", optional = true }
+
+zerocopy = { version = "*", features = ["derive"] }
+
+
+[features]
+log = ["dep:log"]
+defmt = ["dep:defmt"]

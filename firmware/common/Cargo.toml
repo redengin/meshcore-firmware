@@ -31,6 +31,9 @@ embassy-sync = { version = "*", features = ["log"] }
 #-------------------------------------------------------------------------------
 # provide LORA radio drivers
 lora-phy = "*"
+
+# 0.96" OLED Screen
+ssd1306 = { version = "*", features = ["async"] }
 #-------------------------------------------------------------------------------
 
 # BLE service
