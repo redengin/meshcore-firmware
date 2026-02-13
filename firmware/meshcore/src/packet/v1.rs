@@ -37,7 +37,7 @@ pub enum Version {
 impl From<&Header> for Version {
     fn from(header: &Header) -> Self {
         const VERSION_SHIFT: u8 = 6;
-        const VERSION_MASK: u8 = 0b1111;
+        const VERSION_MASK: u8 = 0b11;
         let version_flag = (header.0 >> VERSION_SHIFT) & VERSION_MASK;
         if version_flag == Version::V1 as u8 {
             return Version::V1;
