@@ -1,10 +1,15 @@
-// /// https://github.com/meshcore-dev/MeshCore/blob/main/docs/packet_format.md
+// Implemented per v1 of  https://github.com/meshcore-dev/MeshCore/blob/main/docs/packet_format.md
+
+
+
 // #[derive(Debug, zerocopy::FromBytes)]
-// struct RawPacket
+// struct Packet
 // {
 
 // }
 
+#[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Header(pub u8);
 impl Header {
     pub fn version(&self) -> Version {
@@ -46,7 +51,7 @@ impl From<&Header> for Version {
         if version_flag == Version::V4 as u8 {
             return Version::V4;
         }
-        panic!("unable to process packet")
+        panic!("UNREACHABLE - unable to process packet version")
     }
 }
 
@@ -158,6 +163,6 @@ impl From<&Header> for RouteType {
         if route_flag == RouteType::TransportDirect as u8 {
             return RouteType::TransportDirect;
         }
-        panic!("unable to determine packet route type");
+        panic!("UNREACHABLE - unable to determine packet route type")
     }
 }
