@@ -161,12 +161,3 @@ impl From<&Header> for RouteType {
         panic!("unable to determine packet route type");
     }
 }
-
-
-#[derive(Debug, PartialEq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-// #[repr(u16)]    // FIXME what is the MechCore endianess?
-pub struct TransportCodes {
-    code_1: u16,
-    code_2: u16,
-}
