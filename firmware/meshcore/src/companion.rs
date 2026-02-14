@@ -1,12 +1,11 @@
 pub struct Companion
 {
-    fixme: bool
 }
 
 impl Companion {
     pub fn new() -> Self
     {
-        Companion{fixme: false}
+        Companion{}
     }
 
     /// https://github.com/meshcore-dev/MeshCore/tree/main/examples/companion_radio
@@ -53,4 +52,9 @@ impl Companion {
             // rtc_clock.tick();
         }
     }
+}
+
+/// BLE Host per https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md
+pub struct CompanionBle {
+
 }

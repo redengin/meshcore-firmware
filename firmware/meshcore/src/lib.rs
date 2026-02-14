@@ -3,3 +3,4 @@
 
 mod companion;
 pub use self::companion::Companion;
+pub use self::companion::CompanionBle;

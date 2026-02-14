@@ -8,6 +8,13 @@ edition = "2024"
 log = { version = "*", optional = true }
 defmt = { version = "*", optional = true }
 
+# BLE service
+trouble-host = { version = "*", features = [
+    "default-packet-pool-mtu-255",
+    "derive",
+    "scan",
+] }
+
 # MeshCore = { version = "*", default-features = false }
 [dependencies.MeshCore]
 git = "https://git.housedillon.com/wdillon/Meshcore-rs.git"
@@ -15,8 +22,14 @@ git = "https://git.housedillon.com/wdillon/Meshcore-rs.git"
 # default-features = false
 
 [features]
-log = ["dep:log"]
-defmt = ["dep:defmt"]
+log = [
+    "dep:log",
+    "trouble-host/log",
+]
+defmt = [
+    "dep:defmt",
+    "trouble-host/defmt",
+]
 
 std = [
     "MeshCore/std"
