@@ -1,3 +1,5 @@
-#![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
 
-pub mod packet;
+
+mod companion;
+pub use self::companion::Companion;
