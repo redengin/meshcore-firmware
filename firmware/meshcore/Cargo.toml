@@ -8,12 +8,25 @@ edition = "2024"
 log = { version = "*", optional = true }
 defmt = { version = "*", optional = true }
 
+
 # BLE service
-trouble-host = { version = "*", features = [
-    "default-packet-pool-mtu-255",
-    "derive",
-    "scan",
+trouble-host = { version = "*", default-features = false, features = [
+    "peripheral",
+    "gatt",
+    "derive",   # provide macros
+    "default-packet-pool-mtu-1024", # max out MTU size to maximize bandwidth
+    # see https://github.com/embassy-rs/trouble/blob/main/host/Cargo.toml#L59
+    #   for additional configuration by features
 ] }
+# trouble-host = { version = "0.6.0", features = [
+#     "default-packet-pool-mtu-255",
+#     "derive",
+#     "scan",
+# ] }
+embassy-sync = "*"
+# heapless = "*"
+heapless = "0.9" # FIXME latest version supported by trouble-host
+static_cell = "*"
 
 # MeshCore = { version = "*", default-features = false }
 [dependencies.MeshCore]
@@ -24,10 +37,12 @@ git = "https://git.housedillon.com/wdillon/Meshcore-rs.git"
 [features]
 log = [
     "dep:log",
+    "embassy-sync/log",
     "trouble-host/log",
 ]
 defmt = [
     "dep:defmt",
+    "embassy-sync/defmt",
     "trouble-host/defmt",
 ]
 

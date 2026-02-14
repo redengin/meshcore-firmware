@@ -592,10 +592,12 @@ checksum = "73974a3edbd0bd286759b3d483540f0ebef705919a5f56f4fc7709066f71689b"
 dependencies = [
  "cfg-if",
  "critical-section",
+ "defmt 1.0.1",
  "embedded-io-async 0.6.1",
  "futures-core",
  "futures-sink",
  "heapless 0.8.0",
+ "log",
 ]
 
 [[package]]
@@ -1033,7 +1035,10 @@ version = "0.1.0"
 dependencies = [
  "MeshCore",
  "defmt 1.0.1",
+ "embassy-sync",
+ "heapless 0.9.2",
  "log",
+ "static_cell",
  "trouble-host",
 ]
 
