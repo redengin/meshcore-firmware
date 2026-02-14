@@ -8,7 +8,7 @@ edition = "2024"
 log = { version = "*", optional = true }
 defmt = { version = "*", optional = true }
 
-zerocopy = { version = "*", features = ["derive"] }
+# zerocopy = { version = "*", features = ["derive"] }
 
 
 [features]

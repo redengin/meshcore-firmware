@@ -51,7 +51,7 @@ impl From<&Header> for Version {
         if version_flag == Version::V4 as u8 {
             return Version::V4;
         }
-        panic!("UNREACHABLE - unable to process packet version")
+        panic!("UNREACHABLE - unable to determine packet version for [version flag]={version_flag}")
     }
 }
 
@@ -163,6 +163,6 @@ impl From<&Header> for RouteType {
         if route_flag == RouteType::TransportDirect as u8 {
             return RouteType::TransportDirect;
         }
-        panic!("UNREACHABLE - unable to determine packet route type")
+        panic!("UNREACHABLE - unable to determine packet route type for [route flag]={route_flag}")
     }
 }
