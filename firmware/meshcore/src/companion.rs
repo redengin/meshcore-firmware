@@ -51,7 +51,7 @@ impl Companion {
 }
 
 //------------------------------------------------------------------------------
-// BLE Support
+/// BLE Support
 pub struct CompanionBle {}
 const BLE_MTU_MAX: usize = 1024;
 
@@ -62,7 +62,7 @@ struct Server {
     meschore: MeshCoreService,
 }
 
-/// BLE Host per https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md
+/// BLE Service per https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md
 #[gatt_service(uuid = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E")]
 struct MeshCoreService {
     // support for serial interface
