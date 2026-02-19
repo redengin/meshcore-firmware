@@ -8,6 +8,16 @@ edition = "2024"
 log = { version = "*", optional = true }
 defmt = { version = "*", optional = true }
 
+# provide no_std support
+# heapless = "*"
+heapless = "0.9" # FIXME latest version supported by trouble-host
+static_cell = "*"
+
+
+# provide embassy RTOS methods
+embassy-sync = "*"
+embassy-futures = "*"
+
 
 # BLE service
 trouble-host = { version = "*", default-features = false, features = [
@@ -23,10 +33,6 @@ trouble-host = { version = "*", default-features = false, features = [
 #     "derive",
 #     "scan",
 # ] }
-embassy-sync = "*"
-# heapless = "*"
-heapless = "0.9" # FIXME latest version supported by trouble-host
-static_cell = "*"
 
 # MeshCore = { version = "*", default-features = false }
 [dependencies.MeshCore]
@@ -35,6 +41,8 @@ git = "https://git.housedillon.com/wdillon/Meshcore-rs.git"
 # default-features = false
 
 [features]
+default = ["log"]
+
 log = [
     "dep:log",
     "embassy-sync/log",

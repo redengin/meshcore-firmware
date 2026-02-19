@@ -50,30 +50,3 @@ impl Companion {
     }
 }
 
-//------------------------------------------------------------------------------
-/// BLE Support
-pub struct CompanionBle {}
-const BLE_MTU_MAX: usize = 1024;
-
-// GATT Server definition
-use trouble_host::prelude::*;
-#[gatt_server(connections_max = 1)]
-struct Server {
-    meschore: MeshCoreService,
-}
-
-/// BLE Service per https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md
-#[gatt_service(uuid = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E")]
-struct MeshCoreService {
-    // support for serial interface
-    //------------------------------------------------------------------------------
-    // Rx (App -> Firmware)
-    #[characteristic(uuid = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E", write, notify)]
-    pub rx: heapless::Vec<u8, BLE_MTU_MAX>,
-
-    // Tx (Firmware -> App)
-    #[characteristic(uuid = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E", read, notify)]
-    pub tx: heapless::Vec<u8, BLE_MTU_MAX>,
-    //------------------------------------------------------------------------------
-    // TODO extend to provide true BLE interface
-}
