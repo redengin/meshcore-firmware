@@ -20,5 +20,3 @@ pub use embassy_embedded_hal;
 pub use lora_phy;
 pub use ssd1306;
 //------------------------------------------------------------------------------
-
-pub use trouble_host;

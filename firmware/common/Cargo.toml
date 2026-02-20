@@ -35,10 +35,3 @@ lora-phy = "*"
 # 0.96" OLED Screen
 ssd1306 = { version = "*", features = ["async"] }
 #-------------------------------------------------------------------------------
-
-# BLE service
-trouble-host = { version = "*", features = [
-    "default-packet-pool-mtu-255",
-    "derive",
-    "scan",
-] }
