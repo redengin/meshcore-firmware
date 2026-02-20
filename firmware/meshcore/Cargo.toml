@@ -24,17 +24,12 @@ trouble-host = { version = "*", default-features = false, features = [
     "peripheral",
     "gatt",
     "derive",   # provide macros
-    "default-packet-pool", # FIXME
-    # "default-packet-pool-mtu-1024", # max out BLE MTU size to maximize bandwidth
+    "default-packet-pool-mtu-1024", # max out BLE MTU size to maximize bandwidth
     # see https://github.com/embassy-rs/trouble/blob/main/host/Cargo.toml#L59
     #   for additional configuration by features
 ] }
-# trouble-host = { version = "0.6.0", features = [
-#     "default-packet-pool-mtu-255",
-#     "derive",
-#     "scan",
-# ] }
 
+# depracated
 # MeshCore = { version = "*", default-features = false }
 # [dependencies.MeshCore]
 # git = "https://git.housedillon.com/wdillon/Meshcore-rs.git"
