@@ -9,8 +9,8 @@ log = { version = "*", optional = true }
 defmt = { version = "*", optional = true }
 
 # provide no_std support
-# heapless = "*"
-heapless = "0.9" # FIXME latest version supported by trouble-host
+heapless = "*"
+# heapless = "0.9" # FIXME latest version supported by trouble-host
 static_cell = "*"
 
 
@@ -24,7 +24,7 @@ trouble-host = { version = "*", default-features = false, features = [
     "peripheral",
     "gatt",
     "derive",   # provide macros
-    "default-packet-pool-mtu-1024", # max out MTU size to maximize bandwidth
+    "default-packet-pool-mtu-1024", # max out BLE MTU size to maximize bandwidth
     # see https://github.com/embassy-rs/trouble/blob/main/host/Cargo.toml#L59
     #   for additional configuration by features
 ] }

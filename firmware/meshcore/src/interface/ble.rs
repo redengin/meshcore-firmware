@@ -8,18 +8,6 @@ use embassy_futures::{join::join, select::select};
 pub struct CompanionBle {}
 
 impl CompanionBle {
-    // pub fn run<'a>(ble_name: &'a str) -> ! {
-    //     info!("Starting advertising and GATT service");
-    //     let server = Server::new_with_config(
-    //         GapConfig::Peripheral(PeripheralConfig {
-    //         // name: "TrouBLE",
-    //         name: ble_name,
-    //         appearance: &appearance::power_device::GENERIC_POWER_DEVICE,
-    //     }))
-    //     .unwrap();
-
-    //     loop {}
-    // }
     pub async fn ble_bas_peripheral_run<C>(controller: C, mac: [u8; 6])
     where
         C: Controller,
@@ -82,29 +70,21 @@ pub fn name_from_mac(mac: [u8; 6]) -> heapless::String<32> {
         ssid.push(hex_char(byte % 16)).unwrap();
     }
     return ssid;
-}
-fn hex_char(val: u8) -> char {
-    if val < 10 {
-        return (('0' as u8) + val) as char;
-    };
-    return (('A' as u8) + val - 10) as char;
+
+    fn hex_char(val: u8) -> char {
+        if val < 10 {
+            return (('0' as u8) + val) as char;
+        };
+        return (('A' as u8) + val - 10) as char;
+    }
 }
 
 /// This is a background task that is required to run forever alongside any other BLE tasks.
-///
 /// ## Alternative
-///
-/// If you didn't require this to be generic for your application, you could statically spawn this
-/// with i.e.
-///
-/// ```rust,ignore
-///
-/// #[embassy_executor::task]
+/// spawner.must_spawn(ble_task(runner));
 /// async fn ble_task(mut runner: Runner<'static, SoftdeviceController<'static>>) {
 ///     runner.run().await;
 /// }
-///
-/// spawner.must_spawn(ble_task(runner));
 /// ```
 async fn ble_task<C: Controller, P: PacketPool>(mut runner: Runner<'_, C, P>) {
     loop {
@@ -138,9 +118,9 @@ async fn advertise<'values, 'server, C: Controller>(
             },
         )
         .await?;
-    info!("[adv] advertising");
+    info!("[ble-host] advertising");
     let conn = advertiser.accept().await?.with_attribute_server(server)?;
-    info!("[adv] connection established");
+    info!("[ble-host] connection established");
     Ok(conn)
 }
 
