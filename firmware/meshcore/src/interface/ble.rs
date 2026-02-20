@@ -98,12 +98,42 @@ async fn ble_task<C: Controller, P: PacketPool>(mut runner: Runner<'_, C, P>) {
     }
 }
 
-/// Stream Events until the connection closes.
+/// Create an advertiser to use to connect to a BLE Central, and wait for it to connect.
+async fn advertise<'values, 'server, C: Controller>(
+    name: &'values str,
+    peripheral: &mut Peripheral<'values, C, DefaultPacketPool>,
+    server: &'server Server<'values>,
+) -> Result<GattConnection<'values, 'server, DefaultPacketPool>, BleHostError<C::Error>> {
+    let mut advertiser_data = [0; 31];
+    let len = AdStructure::encode_slice(
+        &[
+            AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
+            AdStructure::ServiceUuids16(&[[0x0f, 0x18]]),   // TODO what is this?
+            AdStructure::CompleteLocalName(name.as_bytes()),
+        ],
+        &mut advertiser_data[..],
+    )?;
+    let advertiser = peripheral
+        .advertise(
+            &Default::default(),
+            Advertisement::ConnectableScannableUndirected {
+                adv_data: &advertiser_data[..len],
+                scan_data: &[],
+            },
+        )
+        .await?;
+    info!("[adv] advertising");
+    let conn = advertiser.accept().await?.with_attribute_server(server)?;
+    info!("[adv] connection established");
+    Ok(conn)
+}
+
+// Stream Events until the connection closes.
 ///
 /// This function will handle the GATT events and process them.
 /// This is how we interact with read and write requests.
 async fn gatt_events_task<P: PacketPool>(server: &Server<'_>, conn: &GattConnection<'_, '_, P>) -> Result<(), Error> {
-    // let level = server.battery_service.level;
+    let _level = &server.meshcore_service.rx;
     let reason = loop {
         match conn.next().await {
             GattConnectionEvent::Disconnected { reason } => break reason,
@@ -134,36 +164,6 @@ async fn gatt_events_task<P: PacketPool>(server: &Server<'_>, conn: &GattConnect
     };
     info!("[gatt] disconnected: {:?}", reason);
     Ok(())
-}
-
-/// Create an advertiser to use to connect to a BLE Central, and wait for it to connect.
-async fn advertise<'values, 'server, C: Controller>(
-    name: &'values str,
-    peripheral: &mut Peripheral<'values, C, DefaultPacketPool>,
-    server: &'server Server<'values>,
-) -> Result<GattConnection<'values, 'server, DefaultPacketPool>, BleHostError<C::Error>> {
-    let mut advertiser_data = [0; 31];
-    let len = AdStructure::encode_slice(
-        &[
-            AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
-            AdStructure::ServiceUuids16(&[[0x0f, 0x18]]),
-            AdStructure::CompleteLocalName(name.as_bytes()),
-        ],
-        &mut advertiser_data[..],
-    )?;
-    let advertiser = peripheral
-        .advertise(
-            &Default::default(),
-            Advertisement::ConnectableScannableUndirected {
-                adv_data: &advertiser_data[..len],
-                scan_data: &[],
-            },
-        )
-        .await?;
-    info!("[adv] advertising");
-    let conn = advertiser.accept().await?.with_attribute_server(server)?;
-    info!("[adv] connection established");
-    Ok(conn)
 }
 
 /// Example task to use the BLE notifier interface.
@@ -201,9 +201,9 @@ async fn custom_task<C: Controller, P: PacketPool>(
 const BLE_MTU_MAX: usize = 1024;
 
 use trouble_host::prelude::*;
-#[gatt_server(connections_max = 1)]
+#[gatt_server]
 struct Server {
-    meschore: MeshCoreService,
+    meshcore_service: MeshCoreService,
 }
 
 /// BLE Service per https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md

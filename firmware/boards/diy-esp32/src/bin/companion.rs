@@ -5,6 +5,7 @@ use common::trouble_host::peripheral;
 // provide the shared crates via re-export
 use common::*;
 use soc_esp32::*; // provides the panic handler
+use meshcore_firmware::*;
 
 // provide logging primitives
 use log::*;
