@@ -30,22 +30,18 @@ impl CompanionBle {
             ..
         } = stack.build();
 
-        // configure the central service
         let name = name_from_mac(mac);
-        let server = Central::new_with_config(GapConfig::Peripheral(PeripheralConfig {
+        info!("Starting advertising and GATT service");
+        let server = Server::new_with_config(GapConfig::Peripheral(PeripheralConfig {
             name: &name,
             appearance: &appearance::network_device::MESH_DEVICE,
         }))
         .unwrap();
-
-        // start advertising the central
         let _ = join(ble_task(runner), async {
             loop {
-                // match advertise("Trouble Example", &mut peripheral, &server).await {
-                match advertise(&name, &mut peripheral, &server).await {
+                match advertise("Trouble Example", &mut peripheral, &server).await {
                     Ok(conn) => {
-                        // set up tasks when the connection is established to a central, so they don't
-                        // run when no one is connected.
+                        // set up tasks when the connection is established to a central, so they don't run when no one is connected.
                         let a = gatt_events_task(&server, &conn);
                         let b = custom_task(&server, &conn, &stack);
                         // run until any task ends (usually because the connection has been closed),
@@ -53,6 +49,8 @@ impl CompanionBle {
                         select(a, b).await;
                     }
                     Err(e) => {
+                        #[cfg(feature = "defmt")]
+                        let e = defmt::Debug2Format(&e);
                         panic!("[adv] error: {:?}", e);
                     }
                 }
@@ -79,9 +77,13 @@ pub fn name_from_mac(mac: [u8; 6]) -> heapless::String<32> {
     }
 }
 
+
 /// This is a background task that is required to run forever alongside any other BLE tasks.
 /// ## Alternative
+/// ```
 /// spawner.must_spawn(ble_task(runner));
+/// ...
+/// #[embassy_executor::task]
 /// async fn ble_task(mut runner: Runner<'static, SoftdeviceController<'static>>) {
 ///     runner.run().await;
 /// }
@@ -89,16 +91,56 @@ pub fn name_from_mac(mac: [u8; 6]) -> heapless::String<32> {
 async fn ble_task<C: Controller, P: PacketPool>(mut runner: Runner<'_, C, P>) {
     loop {
         if let Err(e) = runner.run().await {
+            #[cfg(feature = "defmt")]
+            let e = defmt::Debug2Format(&e);
             panic!("[ble_task] error: {:?}", e);
         }
     }
+}
+
+/// Stream Events until the connection closes.
+///
+/// This function will handle the GATT events and process them.
+/// This is how we interact with read and write requests.
+async fn gatt_events_task<P: PacketPool>(server: &Server<'_>, conn: &GattConnection<'_, '_, P>) -> Result<(), Error> {
+    // let level = server.battery_service.level;
+    let reason = loop {
+        match conn.next().await {
+            GattConnectionEvent::Disconnected { reason } => break reason,
+            GattConnectionEvent::Gatt { event } => {
+                match &event {
+                    // GattEvent::Read(event) => {
+                    //     if event.handle() == level.handle {
+                    //         let value = server.get(&level);
+                    //         info!("[gatt] Read Event to Level Characteristic: {:?}", value);
+                    //     }
+                    // }
+                    // GattEvent::Write(event) => {
+                    //     if event.handle() == level.handle {
+                    //         info!("[gatt] Write Event to Level Characteristic: {:?}", event.data());
+                    //     }
+                    // }
+                    _ => {}
+                };
+                // This step is also performed at drop(), but writing it explicitly is necessary
+                // in order to ensure reply is sent.
+                match event.accept() {
+                    Ok(reply) => reply.send().await,
+                    Err(e) => warn!("[gatt] error sending response: {:?}", e),
+                };
+            }
+            _ => {} // ignore other Gatt Connection Events
+        }
+    };
+    info!("[gatt] disconnected: {:?}", reason);
+    Ok(())
 }
 
 /// Create an advertiser to use to connect to a BLE Central, and wait for it to connect.
 async fn advertise<'values, 'server, C: Controller>(
     name: &'values str,
     peripheral: &mut Peripheral<'values, C, DefaultPacketPool>,
-    server: &'server Central<'values>,
+    server: &'server Server<'values>,
 ) -> Result<GattConnection<'values, 'server, DefaultPacketPool>, BleHostError<C::Error>> {
     let mut advertiser_data = [0; 31];
     let len = AdStructure::encode_slice(
@@ -118,54 +160,10 @@ async fn advertise<'values, 'server, C: Controller>(
             },
         )
         .await?;
-    info!("[ble-host] advertising");
+    info!("[adv] advertising");
     let conn = advertiser.accept().await?.with_attribute_server(server)?;
-    info!("[ble-host] connection established");
+    info!("[adv] connection established");
     Ok(conn)
-}
-
-/// Stream Events until the connection closes.
-///
-/// This function will handle the GATT events and process them.
-/// This is how we interact with read and write requests.
-async fn gatt_events_task<P: PacketPool>(
-    _server: &Central<'_>,
-    _conn: &GattConnection<'_, '_, P>,
-) -> Result<(), Error> {
-    // let level = server.battery_service.level;
-    // let reason = loop {
-    //     match conn.next().await {
-    //         GattConnectionEvent::Disconnected { reason } => break reason,
-    //         GattConnectionEvent::Gatt { event } => {
-    //             match &event {
-    //                 GattEvent::Read(event) => {
-    //                     if event.handle() == level.handle {
-    //                         let value = server.get(&level);
-    //                         info!("[gatt] Read Event to Level Characteristic: {:?}", value);
-    //                     }
-    //                 }
-    //                 GattEvent::Write(event) => {
-    //                     if event.handle() == level.handle {
-    //                         info!(
-    //                             "[gatt] Write Event to Level Characteristic: {:?}",
-    //                             event.data()
-    //                         );
-    //                     }
-    //                 }
-    //                 _ => {}
-    //             };
-    //             // This step is also performed at drop(), but writing it explicitly is necessary
-    //             // in order to ensure reply is sent.
-    //             match event.accept() {
-    //                 Ok(reply) => reply.send().await,
-    //                 Err(e) => warn!("[gatt] error sending response: {:?}", e),
-    //             };
-    //         }
-    //         _ => {} // ignore other Gatt Connection Events
-    //     }
-    // };
-    // info!("[gatt] disconnected: {:?}", reason);
-    Ok(())
 }
 
 /// Example task to use the BLE notifier interface.
@@ -173,9 +171,9 @@ async fn gatt_events_task<P: PacketPool>(
 /// It will also read the RSSI value every 2 seconds.
 /// and will stop when the connection is closed by the central or an error occurs.
 async fn custom_task<C: Controller, P: PacketPool>(
-    server: &Central<'_>,
-    conn: &GattConnection<'_, '_, P>,
-    stack: &Stack<'_, C, P>,
+    _server: &Server<'_>,
+    _conn: &GattConnection<'_, '_, P>,
+    _stack: &Stack<'_, C, P>,
 ) {
     // let mut tick: u8 = 0;
     // let level = server.battery_service.level;
@@ -197,12 +195,14 @@ async fn custom_task<C: Controller, P: PacketPool>(
     // }
 }
 
+
+
+// GATT Server definition
 const BLE_MTU_MAX: usize = 1024;
 
-// GATT Server (i.e. central) definition
 use trouble_host::prelude::*;
 #[gatt_server(connections_max = 1)]
-struct Central {
+struct Server {
     meschore: MeshCoreService,
 }
 
@@ -224,5 +224,5 @@ struct MeshCoreService {
     // #[descriptor(uuid = descriptors::VALID_RANGE, read, value = [0, 100])]
     // #[descriptor(uuid = descriptors::MEASUREMENT_DESCRIPTION, name = "hello", read, value = "Battery Level", type = &'static str)]
     // #[characteristic(uuid = characteristic::BATTERY_LEVEL, read, notify, value = 10)]
-    battery_level: u8,
+    // battery_level: u8,
 }
