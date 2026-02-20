@@ -493,6 +493,7 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "heapless 0.8.0",
+ "log",
 ]
 
 [[package]]
@@ -1285,6 +1286,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8ca58f447f06ed17d5fc4043ce1b10dd205e060fb3ce5b979b8ed8e59ff3f79"
 
 [[package]]
+name = "meshcore-firmware"
+version = "0.1.0"
+dependencies = [
+ "embassy-futures",
+ "embassy-sync 0.6.2",
+ "heapless 0.8.0",
+ "log",
+ "static_cell",
+ "trouble-host",
+]
+
+[[package]]
 name = "meshcore-firmware-diy-esp32"
 version = "0.1.0"
 dependencies = [
@@ -1292,6 +1305,7 @@ dependencies = [
  "embassy-executor",
  "esp-hal",
  "esp-rtos",
+ "meshcore-firmware",
  "soc-esp32",
 ]
 
@@ -1840,6 +1854,7 @@ dependencies = [
  "embedded-io 0.7.1",
  "futures",
  "heapless 0.9.2",
+ "log",
  "rand_core 0.6.4",
  "static_cell",
  "trouble-host-macros",

@@ -1,5 +1,5 @@
 [package]
-name = "meshcore_roles"
+name = "meshcore-firmware"
 version = "0.1.0"
 license = "MIT"
 edition = "2024"
@@ -35,8 +35,8 @@ trouble-host = { version = "*", default-features = false, features = [
 # ] }
 
 # MeshCore = { version = "*", default-features = false }
-[dependencies.MeshCore]
-git = "https://git.housedillon.com/wdillon/Meshcore-rs.git"
+# [dependencies.MeshCore]
+# git = "https://git.housedillon.com/wdillon/Meshcore-rs.git"
 # FIXME unable to build for no_std currently
 # default-features = false
 
@@ -55,5 +55,5 @@ defmt = [
 ]
 
 std = [
-    "MeshCore/std"
+    # "MeshCore/std"
 ]
