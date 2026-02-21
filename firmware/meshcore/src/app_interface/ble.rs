@@ -53,7 +53,8 @@ where
     // create the BLE server
     let name = name_from_mac(mac);
     let server = Server::new_with_config(GapConfig::Peripheral(PeripheralConfig {
-        name: &name,
+        // name: &name,
+        name: "TrouBLE",
         appearance: &appearance::network_device::MESH_DEVICE,
     }))
     .unwrap();
@@ -63,17 +64,17 @@ where
         loop {
             match advertise("Trouble Example", &mut peripheral, &server).await {
                 Ok(conn) => {
-                    // set up tasks when the connection is established to a central, so they don't run when no one is connected.
-                    let a = gatt_events_task(&server, &conn);
-                    let b = custom_task(&server, &conn, &stack);
-                    // run until any task ends (usually because the connection has been closed),
-                    // then return to advertising state.
-                    select(a, b).await;
+                    // // set up tasks when the connection is established to a central, so they don't run when no one is connected.
+                    // let a = gatt_events_task(&server, &conn);
+                    // let b = custom_task(&server, &conn, &stack);
+                    // // run until any task ends (usually because the connection has been closed),
+                    // // then return to advertising state.
+                    // select(a, b).await;
                 }
                 Err(e) => {
                     #[cfg(feature = "defmt")]
                     let e = defmt::Debug2Format(&e);
-                    panic!("[adv] error: {:?}", e);
+                    // panic!("[adv] error: {:?}", e);
                 }
             }
         }
@@ -106,29 +107,31 @@ async fn advertise<'values, 'server, C: Controller>(
     name: &'values str,
     peripheral: &mut Peripheral<'values, C, DefaultPacketPool>,
     server: &'server Server<'values>,
-) -> Result<GattConnection<'values, 'server, DefaultPacketPool>, BleHostError<C::Error>> {
-    let mut advertiser_data = [0; 31];
-    let len = AdStructure::encode_slice(
-        &[
-            AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
-            AdStructure::ServiceUuids16(&[[0x0f, 0x18]]),
-            AdStructure::CompleteLocalName(name.as_bytes()),
-        ],
-        &mut advertiser_data[..],
-    )?;
-    let advertiser = peripheral
-        .advertise(
-            &Default::default(),
-            Advertisement::ConnectableScannableUndirected {
-                adv_data: &advertiser_data[..len],
-                scan_data: &[],
-            },
-        )
-        .await?;
-    info!("[adv] advertising");
-    let conn = advertiser.accept().await?.with_attribute_server(server)?;
-    info!("[adv] connection established");
-    Ok(conn)
+// ) -> Result<GattConnection<'values, 'server, DefaultPacketPool>, BleHostError<C::Error>> {
+) -> Result<GattConnection<'values, 'server, DefaultPacketPool>, ()> {
+    // let mut advertiser_data = [0; 31];
+    // let len = AdStructure::encode_slice(
+    //     &[
+    //         AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
+    //         AdStructure::ServiceUuids16(&[[0x0f, 0x18]]),
+    //         AdStructure::CompleteLocalName(name.as_bytes()),
+    //     ],
+    //     &mut advertiser_data[..],
+    // )?;
+    // let advertiser = peripheral
+    //     .advertise(
+    //         &Default::default(),
+    //         Advertisement::ConnectableScannableUndirected {
+    //             adv_data: &advertiser_data[..len],
+    //             scan_data: &[],
+    //         },
+    //     )
+    //     .await?;
+    // info!("[adv] advertising");
+    // let conn = advertiser.accept().await?.with_attribute_server(server)?;
+    // info!("[adv] connection established");
+    // Ok(conn)
+    Err(())
 }
 
 /// Handle GATT Events until the connection closes

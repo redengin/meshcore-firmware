@@ -42,67 +42,68 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     info!("RTOS initialized");
     //==============================================================================
 
-    info!("initializing LoRA radio...");
-    //==============================================================================
-    // the following initializes a heltec v3 sx1262
-    // heltec v3 pins https://heltec.org/wp-content/uploads/2023/09/pin.png
-    let lora_nss = esp_hal::gpio::Output::new(
-        // peripherals.GPIO8,
-        // FIXME GPIO8 not allowed on esp32 (hangs rather than panics), so remapping
-        peripherals.GPIO26,
-        esp_hal::gpio::Level::High,
-        esp_hal::gpio::OutputConfig::default(),
-    );
-    let lora_sck = peripherals.GPIO9;
-    let lora_mosi = peripherals.GPIO10;
-    let lora_miso = peripherals.GPIO11;
-    let lora_reset = esp_hal::gpio::Output::new(
-        peripherals.GPIO12,
-        esp_hal::gpio::Level::Low,
-        esp_hal::gpio::OutputConfig::default(),
-    );
-    let lora_busy =
-        esp_hal::gpio::Input::new(peripherals.GPIO13, esp_hal::gpio::InputConfig::default());
-    let lora_dio1 =
-        esp_hal::gpio::Input::new(peripherals.GPIO14, esp_hal::gpio::InputConfig::default());
-    //--------------------------------------------------------------------------
-    let lora_spi = esp_hal::spi::master::Spi::new(
-        peripherals.SPI2,
-        esp_hal::spi::master::Config::default()
-            .with_frequency(esp_hal::time::Rate::from_khz(100))
-            .with_mode(esp_hal::spi::Mode::_0),
-    )
-    .unwrap()
-    .with_sck(lora_sck)
-    .with_mosi(lora_mosi)
-    .with_miso(lora_miso)
-    .into_async();
-    let lora_spi_bus = LORA_SPI_BUS.init(Mutex::new(lora_spi));
-    let lora_spi_device =
-        embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice::new(lora_spi_bus, lora_nss);
-    // create a radio instance
-    let lora_interface = lora_phy::iv::GenericSx126xInterfaceVariant::new(
-        lora_reset, lora_dio1, lora_busy, None, None,
-    )
-    .unwrap();
-    let sx126x_config = lora_phy::sx126x::Config {
-        chip: lora_phy::sx126x::Sx1262,
-        // TODO are these the correct parameters?
-        //----------------------------------------------------------------------
-        tcxo_ctrl: Some(lora_phy::sx126x::TcxoCtrlVoltage::Ctrl1V7),
-        use_dcdc: false,
-        rx_boost: true,
-        //----------------------------------------------------------------------
-    };
-    // FIXME disabling as I have no radio for development
-    // let mut lora_radio = lora_phy::LoRa::new(
-    //     lora_phy::sx126x::Sx126x::new(lora_spi_device, lora_interface, sx126x_config),
-    //     false,
-    //     Delay,
+    // info!("initializing LoRA radio...");
+    // //==============================================================================
+    // // the following initializes a heltec v3 sx1262
+    // // heltec v3 pins https://heltec.org/wp-content/uploads/2023/09/pin.png
+    // let lora_nss = esp_hal::gpio::Output::new(
+    //     // peripherals.GPIO8,
+    //     // FIXME GPIO8 not allowed on esp32 (hangs rather than panics), so remapping
+    //     peripherals.GPIO26,
+    //     esp_hal::gpio::Level::High,
+    //     esp_hal::gpio::OutputConfig::default(),
+    // );
+    // let lora_sck = peripherals.GPIO9;
+    // let lora_mosi = peripherals.GPIO10;
+    // let lora_miso = peripherals.GPIO11;
+    // let lora_reset = esp_hal::gpio::Output::new(
+    //     peripherals.GPIO12,
+    //     esp_hal::gpio::Level::Low,
+    //     esp_hal::gpio::OutputConfig::default(),
+    // );
+    // let lora_busy =
+    //     esp_hal::gpio::Input::new(peripherals.GPIO13, esp_hal::gpio::InputConfig::default());
+    // let lora_dio1 =
+    //     esp_hal::gpio::Input::new(peripherals.GPIO14, esp_hal::gpio::InputConfig::default());
+    // //--------------------------------------------------------------------------
+    // let lora_spi = esp_hal::spi::master::Spi::new(
+    //     peripherals.SPI2,
+    //     esp_hal::spi::master::Config::default()
+    //         .with_frequency(esp_hal::time::Rate::from_khz(100))
+    //         .with_mode(esp_hal::spi::Mode::_0),
     // )
-    // .await
+    // .unwrap()
+    // .with_sck(lora_sck)
+    // .with_mosi(lora_mosi)
+    // .with_miso(lora_miso)
+    // .into_async();
+    // info!("initializing LoRA radio... GOT HERE");
+    // let lora_spi_bus = LORA_SPI_BUS.init(Mutex::new(lora_spi));
+    // let lora_spi_device =
+    //     embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice::new(lora_spi_bus, lora_nss);
+    // // create a radio instance
+    // let lora_interface = lora_phy::iv::GenericSx126xInterfaceVariant::new(
+    //     lora_reset, lora_dio1, lora_busy, None, None,
+    // )
     // .unwrap();
-    // info!("LoRa radio initialized");
+    // let sx126x_config = lora_phy::sx126x::Config {
+    //     chip: lora_phy::sx126x::Sx1262,
+    //     // TODO are these the correct parameters?
+    //     //----------------------------------------------------------------------
+    //     tcxo_ctrl: Some(lora_phy::sx126x::TcxoCtrlVoltage::Ctrl1V7),
+    //     use_dcdc: false,
+    //     rx_boost: true,
+    //     //----------------------------------------------------------------------
+    // };
+    // // FIXME disabling as I have no radio for development
+    // // let mut lora_radio = lora_phy::LoRa::new(
+    // //     lora_phy::sx126x::Sx126x::new(lora_spi_device, lora_interface, sx126x_config),
+    // //     false,
+    // //     Delay,
+    // // )
+    // // .await
+    // // .unwrap();
+    // // info!("LoRa radio initialized");
     warn!("LoRa radio left uninitialized");
     //==============================================================================
 
