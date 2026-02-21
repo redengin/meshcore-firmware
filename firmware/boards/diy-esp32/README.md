@@ -8,8 +8,9 @@ This is a a template for creating ESP32 based devices. Users will need to
 
 ## Usage
 ```sh
-# flash companion firmware
-cargo run --bin companion
+# build and flash per esp32 type
+cargo esp32 --bin companion
+cargo esp32s3 --bin companion
 ```
 
 Espressif Rust (esp-rs)

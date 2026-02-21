@@ -7,7 +7,7 @@ publish = false
 
 [dependencies]
 common = { path = "../../common" }
-soc-esp32 = { path = "../../soc/esp32", features = ["esp32"] }
+soc-esp32 = { path = "../../soc/esp32" }
 meshcore-firmware = { path = "../../meshcore" }
 
 # FIXME - the following dependencies must exist for esp-rs to build executable
@@ -21,6 +21,9 @@ git = "https://github.com/esp-rs/esp-hal"
 git = "https://github.com/esp-rs/esp-hal"
 #-------------------------------------------------------------------------------
 
+[features]
+esp32 = ["soc-esp32/esp32"]
+esp32s3 = ["soc-esp32/esp32s3"]
 
 [profile.dev]
 # Rust debug is too slow.

@@ -118,15 +118,16 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     info!("BLE initialized");
     spawner.spawn(task_ble_host(ble_connector)).unwrap();
 
-    // initialize WiFi hardware
-    // https://github.com/esp-rs/esp-hal/blob/main/examples/wifi/80211_tx/
-    let (mut wifi_controller, _interfaces) =
-        esp_radio::wifi::new(peripherals.WIFI, Default::default()).unwrap();
-    wifi_controller
-        .set_mode(esp_radio::wifi::WifiMode::Station)
-        .unwrap();
-    wifi_controller.start_async().await.unwrap();
-    info!("WiFi initialized");
+    // FIXME
+    // // initialize WiFi hardware
+    // // https://github.com/esp-rs/esp-hal/blob/main/examples/wifi/80211_tx/
+    // let (mut wifi_controller, _interfaces) =
+    //     esp_radio::wifi::new(peripherals.WIFI, Default::default()).unwrap();
+    // wifi_controller
+    //     .set_mode(esp_radio::wifi::WifiMode::Station)
+    //     .unwrap();
+    // wifi_controller.start_async().await.unwrap();
+    // info!("WiFi initialized");
 
     //------------------------------------------------------------------------------
 
