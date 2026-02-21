@@ -8,9 +8,11 @@ This is a a template for creating ESP32 based devices. Users will need to
 
 ## Usage
 ```sh
-# build and flash per esp32 type
+# build and flash
+# 'cargo <esp32 type> --bin <role>'
+# * esp32 type: [esp32, esp32s3]
+# * role: [companion, repeater, room]
 cargo esp32 --bin companion
-cargo esp32s3 --bin companion
 ```
 
 Espressif Rust (esp-rs)
