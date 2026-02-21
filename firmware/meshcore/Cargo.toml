@@ -15,6 +15,7 @@ static_cell = "*"
 
 
 # provide embassy RTOS methods
+embassy-time = "*"
 embassy-sync = "*"
 embassy-futures = "*"
 

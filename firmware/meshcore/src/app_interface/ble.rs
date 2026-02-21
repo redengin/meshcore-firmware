@@ -1,66 +1,14 @@
-/// BLE Support
-/// https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md#ble-connection
+// provide logging primitives
 use log::*;
 
 // provide scheduling primitives
 use embassy_futures::{join::join, select::select};
+use embassy_time::Timer;
 
-pub struct CompanionBle {}
 
-impl CompanionBle {
-    pub async fn ble_bas_peripheral_run<C>(controller: C, mac: [u8; 6])
-    where
-        C: Controller,
-    {
-        /// Max number of connections
-        const CONNECTIONS_MAX: usize = 1;
-        /// Max number of L2CAP channels.
-        const L2CAP_CHANNELS_MAX: usize = 2; // Signal + att
-
-        // create resources
-        let mut resources: HostResources<DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
-            HostResources::new();
-
-        // create the stack
-        let address: Address = Address::random(mac);
-        let stack = trouble_host::new(controller, &mut resources).set_random_address(address);
-        let Host {
-            mut peripheral,
-            runner,
-            ..
-        } = stack.build();
-
-        let name = name_from_mac(mac);
-        info!("Starting advertising and GATT service");
-        let server = Server::new_with_config(GapConfig::Peripheral(PeripheralConfig {
-            name: &name,
-            appearance: &appearance::network_device::MESH_DEVICE,
-        }))
-        .unwrap();
-        let _ = join(ble_task(runner), async {
-            loop {
-                match advertise("Trouble Example", &mut peripheral, &server).await {
-                    Ok(conn) => {
-                        // set up tasks when the connection is established to a central, so they don't run when no one is connected.
-                        let a = gatt_events_task(&server, &conn);
-                        let b = custom_task(&server, &conn, &stack);
-                        // run until any task ends (usually because the connection has been closed),
-                        // then return to advertising state.
-                        select(a, b).await;
-                    }
-                    Err(e) => {
-                        #[cfg(feature = "defmt")]
-                        let e = defmt::Debug2Format(&e);
-                        panic!("[adv] error: {:?}", e);
-                    }
-                }
-            }
-        })
-        .await;
-    }
-}
-
-pub fn name_from_mac(mac: [u8; 6]) -> heapless::String<32> {
+/// convert MAC to a string "MeshCore-XXXXXXXXXXXX"
+/// TODO move this to common method
+fn name_from_mac(mac: [u8; 6]) -> heapless::String<32> {
     let mut ssid: heapless::String<32> = heapless::String::try_from("MeshCore-").unwrap();
     // add the MAC address
     for byte in mac {
@@ -77,6 +25,61 @@ pub fn name_from_mac(mac: [u8; 6]) -> heapless::String<32> {
     }
 }
 
+/// Run the BLE stack.
+pub async fn run<C>(controller: C, mac: [u8; 6])
+where
+    C: trouble_host::Controller,
+{
+    /// Max number of connections
+    const CONNECTIONS_MAX: usize = 1;
+    /// Max number of L2CAP channels.
+    const L2CAP_CHANNELS_MAX: usize = 2; // Signal + att
+
+    // create resources
+    use trouble_host::{HostResources, prelude::DefaultPacketPool};
+    let mut resources: HostResources<DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
+        HostResources::new();
+
+    // create the stack
+    use trouble_host::{Address, Host};
+    let address: Address = Address::random(mac);
+    let stack = trouble_host::new(controller, &mut resources).set_random_address(address);
+    let Host {
+        mut peripheral,
+        runner,
+        ..
+    } = stack.build();
+
+    // create the BLE server
+    let name = name_from_mac(mac);
+    let server = Server::new_with_config(GapConfig::Peripheral(PeripheralConfig {
+        name: &name,
+        appearance: &appearance::network_device::MESH_DEVICE,
+    }))
+    .unwrap();
+
+    // run the BLE host service (advertise -> connect -> serve -disconnect-> advertise)
+    let _ = join(ble_task(runner), async {
+        loop {
+            match advertise("Trouble Example", &mut peripheral, &server).await {
+                Ok(conn) => {
+                    // set up tasks when the connection is established to a central, so they don't run when no one is connected.
+                    let a = gatt_events_task(&server, &conn);
+                    let b = custom_task(&server, &conn, &stack);
+                    // run until any task ends (usually because the connection has been closed),
+                    // then return to advertising state.
+                    select(a, b).await;
+                }
+                Err(e) => {
+                    #[cfg(feature = "defmt")]
+                    let e = defmt::Debug2Format(&e);
+                    panic!("[adv] error: {:?}", e);
+                }
+            }
+        }
+    })
+    .await;
+}
 
 /// This is a background task that is required to run forever alongside any other BLE tasks.
 /// ## Alternative
@@ -108,7 +111,7 @@ async fn advertise<'values, 'server, C: Controller>(
     let len = AdStructure::encode_slice(
         &[
             AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
-            AdStructure::ServiceUuids16(&[[0x0f, 0x18]]),   // TODO what is this?
+            AdStructure::ServiceUuids16(&[[0x0f, 0x18]]),
             AdStructure::CompleteLocalName(name.as_bytes()),
         ],
         &mut advertiser_data[..],
@@ -128,17 +131,15 @@ async fn advertise<'values, 'server, C: Controller>(
     Ok(conn)
 }
 
-// Stream Events until the connection closes.
-///
-/// This function will handle the GATT events and process them.
-/// This is how we interact with read and write requests.
+/// Handle GATT Events until the connection closes
 async fn gatt_events_task<P: PacketPool>(server: &Server<'_>, conn: &GattConnection<'_, '_, P>) -> Result<(), Error> {
-    let _level = &server.meshcore_service.rx;
+    // let level = server.battery_service.level;
     let reason = loop {
         match conn.next().await {
             GattConnectionEvent::Disconnected { reason } => break reason,
             GattConnectionEvent::Gatt { event } => {
                 match &event {
+                    // FIXME handle GATT events
                     // GattEvent::Read(event) => {
                     //     if event.handle() == level.handle {
                     //         let value = server.get(&level);
@@ -171,35 +172,34 @@ async fn gatt_events_task<P: PacketPool>(server: &Server<'_>, conn: &GattConnect
 /// It will also read the RSSI value every 2 seconds.
 /// and will stop when the connection is closed by the central or an error occurs.
 async fn custom_task<C: Controller, P: PacketPool>(
-    _server: &Server<'_>,
-    _conn: &GattConnection<'_, '_, P>,
-    _stack: &Stack<'_, C, P>,
+    server: &Server<'_>,
+    conn: &GattConnection<'_, '_, P>,
+    stack: &Stack<'_, C, P>,
 ) {
-    // let mut tick: u8 = 0;
+    let mut tick: u8 = 0;
     // let level = server.battery_service.level;
-    // loop {
-    //     tick = tick.wrapping_add(1);
-    //     info!("[custom_task] notifying connection of tick {}", tick);
-    //     if level.notify(conn, &tick).await.is_err() {
-    //         info!("[custom_task] error notifying connection");
-    //         break;
-    //     };
-    //     // read RSSI (Received Signal Strength Indicator) of the connection.
-    //     if let Ok(rssi) = conn.raw().rssi(stack).await {
-    //         info!("[custom_task] RSSI: {:?}", rssi);
-    //     } else {
-    //         info!("[custom_task] error getting RSSI");
-    //         break;
-    //     };
-    //     Timer::after_secs(2).await;
-    // }
+    loop {
+        tick = tick.wrapping_add(1);
+        info!("[custom_task] notifying connection of tick {}", tick);
+        // if level.notify(conn, &tick).await.is_err() {
+        //     info!("[custom_task] error notifying connection");
+        //     break;
+        // };
+        // read RSSI (Received Signal Strength Indicator) of the connection.
+        if let Ok(rssi) = conn.raw().rssi(stack).await {
+            info!("[custom_task] RSSI: {:?}", rssi);
+        } else {
+            info!("[custom_task] error getting RSSI");
+            break;
+        };
+        Timer::after_secs(2).await;
+    }
 }
 
 
-
 // GATT Server definition
+//==============================================================================
 const BLE_MTU_MAX: usize = 1024;
-
 use trouble_host::prelude::*;
 #[gatt_server]
 struct Server {
@@ -226,3 +226,4 @@ struct MeshCoreService {
     // #[characteristic(uuid = characteristic::BATTERY_LEVEL, read, notify, value = 10)]
     // battery_level: u8,
 }
+//==============================================================================

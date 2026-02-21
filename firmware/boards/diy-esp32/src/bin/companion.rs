@@ -32,20 +32,20 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     esp_println::logger::init_logger_from_env();
     info!("initializing...");
 
-    // initialize the rtos
+    info!("initializing RTOS...");
+    //==============================================================================
     use esp_hal::timer::timg::TimerGroup;
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     use esp_hal::interrupt::software::SoftwareInterruptControl;
     let sw_int = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
     esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
-
-    // initialize LoRa radio
+    info!("RTOS initialized");
     //==============================================================================
+
     info!("initializing LoRA radio...");
+    //==============================================================================
     // the following initializes a heltec v3 sx1262
     // heltec v3 pins https://heltec.org/wp-content/uploads/2023/09/pin.png
-    //--------------------------------------------------------------------------
-    info!("creating lora_nss");
     let lora_nss = esp_hal::gpio::Output::new(
         // peripherals.GPIO8,
         // FIXME GPIO8 not allowed on esp32 (hangs rather than panics), so remapping
@@ -77,7 +77,6 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     .with_mosi(lora_mosi)
     .with_miso(lora_miso)
     .into_async();
-    info!("LoRa SPI initialized");
     let lora_spi_bus = LORA_SPI_BUS.init(Mutex::new(lora_spi));
     let lora_spi_device =
         embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice::new(lora_spi_bus, lora_nss);
@@ -107,6 +106,8 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     warn!("LoRa radio left uninitialized");
     //==============================================================================
 
+    info!("initializing BLE host...");
+    //==============================================================================
     // initialize the bluetooth hardware
     // https://github.com/esp-rs/esp-hal/tree/main/examples/ble/bas_peripheral
     create_heap!(); // required by radio (use 64K reclaimed from bootloader)
@@ -115,8 +116,9 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
         esp_radio::ble::Config::default().with_max_connections(1),
     )
     .unwrap();
-    info!("BLE initialized");
     spawner.spawn(task_ble_host(ble_connector)).unwrap();
+    info!("BLE Host initialized");
+    //==============================================================================
 
     // FIXME
     // // initialize WiFi hardware
@@ -142,7 +144,11 @@ async fn task_ble_host(ble_connector: esp_radio::ble::controller::BleConnector<'
     use trouble_host::prelude::ExternalController;
     let controller: ExternalController<_, 20> = ExternalController::new(ble_connector);
 
+    // FIXME get the real MAC
+    let mac = [0,0,0,0,0,0];
 
+    // should run forever
+    meshcore_firmware::app_interface::ble::run(controller, mac).await;
 
     error!("BLE host stopped");
 }
