@@ -7,7 +7,8 @@ pub use self::companion::Companion;
 // pub use self::room::Room;
 
 // application interfaces (BLE, USB Serial, etc.)
+pub use trouble_host;
 mod interface;
-pub use self::interface::CompanionBle;
+// pub use self::interface::CompanionBle;
 // pub use self::interface::CompanionSerial;
 // pub use self::interface::CompanionWifi;

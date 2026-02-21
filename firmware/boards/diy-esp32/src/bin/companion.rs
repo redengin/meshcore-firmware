@@ -1,11 +1,10 @@
 #![no_std]
 #![no_main]
 
-use common::trouble_host::peripheral;
 // provide the shared crates via re-export
 use common::*;
-use soc_esp32::*; // provides the panic handler
 use meshcore_firmware::*;
+use soc_esp32::*; // provides the panic handler
 
 // provide logging primitives
 use log::*;
@@ -104,7 +103,8 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     // )
     // .await
     // .unwrap();
-    info!("LoRa radio initialized");
+    // info!("LoRa radio initialized");
+    warn!("LoRa radio left uninitialized");
     //==============================================================================
 
     // initialize the bluetooth hardware
@@ -136,32 +136,12 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     }
 }
 
-// FIXME is trouble_host able to be used commonly across hardware?
 #[embassy_executor::task]
-async fn task_ble_host(_ble_connector: esp_radio::ble::controller::BleConnector<'static>) {
-    // /// Max number of connections
-    // const CONNECTIONS_MAX: usize = 1;
-    // /// Max number of L2CAP channels.
-    // const L2CAP_CHANNELS_MAX: usize = 2; // Signal + att
+async fn task_ble_host(ble_connector: esp_radio::ble::controller::BleConnector<'static>) {
+    use trouble_host::prelude::ExternalController;
+    let controller: ExternalController<_, 20> = ExternalController::new(ble_connector);
 
-    // // create the BLE Host controller (i.e trouble_host)
-    // use trouble_host::prelude::*;
-    // let ble_controller: ExternalController<_, 1> = ExternalController::new(ble_connector);
 
-    // // configure trouble_host
-    // let mut resources: HostResources<DefaultPacketPool, CONNECTIONS_MAX, L2CAP_CHANNELS_MAX> =
-    //     HostResources::new();
-    // let mac = esp_hal::efuse::Efuse::mac_address();
-    // let stack =
-    //     trouble_host::new(ble_controller, &mut resources).set_random_address(Address::random(mac));
-    // let Host {
-    //     mut peripheral,
-    //     runner,
-    //     ..
-    // } = stack.build();
-
-    info!("Starting advertising and GATT service");
-    // TODO implement
 
     error!("BLE host stopped");
 }
