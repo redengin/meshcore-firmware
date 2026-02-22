@@ -26,9 +26,14 @@ fn name_from_mac(mac: [u8; 6]) -> heapless::String<32> {
 }
 
 /// Run the BLE stack.
-pub async fn run<C>(controller: C, mac: [u8; 6])
+pub async fn run<C, RNG>(
+    controller: C,
+    mac: [u8; 6],
+    random_generator: &mut RNG,
+)
 where
     C: trouble_host::Controller,
+    RNG: rand_core::RngCore + rand_core::CryptoRng,
 {
     /// Max number of connections
     const CONNECTIONS_MAX: usize = 1;

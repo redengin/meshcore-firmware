@@ -29,8 +29,9 @@ trouble-host = { version = "*", default-features = false, features = [
     # see https://github.com/embassy-rs/trouble/blob/main/host/Cargo.toml#L59
     #   for additional configuration by features
 ] }
+rand_core = { version = "*", default-features = false }
 
-# depracated
+# deprecated
 # MeshCore = { version = "*", default-features = false }
 # [dependencies.MeshCore]
 # git = "https://git.housedillon.com/wdillon/Meshcore-rs.git"

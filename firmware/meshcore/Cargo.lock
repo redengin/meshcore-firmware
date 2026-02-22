@@ -410,6 +410,7 @@ dependencies = [
  "embassy-time",
  "heapless 0.9.2",
  "log",
+ "rand_core",
  "static_cell",
  "trouble-host",
 ]

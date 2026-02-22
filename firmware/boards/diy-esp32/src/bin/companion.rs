@@ -117,6 +117,8 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
         esp_radio::ble::Config::default().with_max_connections(1),
     )
     .unwrap();
+    // initialize a secure random number source
+    let _trng = esp_hal::rng::TrngSource::new(peripherals.RNG, peripherals.ADC1);
     spawner.spawn(task_ble_host(ble_connector)).unwrap();
     info!("BLE Host initialized");
     //==============================================================================
@@ -141,15 +143,21 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
 }
 
 #[embassy_executor::task]
-async fn task_ble_host(ble_connector: esp_radio::ble::controller::BleConnector<'static>) {
+async fn task_ble_host(
+    connector: esp_radio::ble::controller::BleConnector<'static>,
+)
+{
     use trouble_host::prelude::ExternalController;
-    let controller: ExternalController<_, 20> = ExternalController::new(ble_connector);
+    let controller: ExternalController<_, 20> = ExternalController::new(connector);
 
     // FIXME get the real MAC
     let mac = [0xff, 0x8f, 0x1a, 0x05, 0xe4, 0xff];
 
+    info!("[BLE] Creating random number generator for security");
+    let mut trng = esp_hal::rng::Trng::try_new().unwrap();
+
     // should run forever
-    meshcore_firmware::app_interface::ble::run(controller, mac).await;
+    meshcore_firmware::app_interface::ble::run(controller, mac, &mut trng).await;
 
     error!("BLE host stopped");
 }
