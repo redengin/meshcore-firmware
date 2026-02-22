@@ -22,6 +22,8 @@ git = "https://github.com/esp-rs/esp-hal"
 #-------------------------------------------------------------------------------
 
 [features]
+default = ["esp32"] # required by rust analyzer
+
 esp32 = ["soc-esp32/esp32"]
 esp32s3 = ["soc-esp32/esp32s3"]
 

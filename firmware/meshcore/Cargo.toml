@@ -25,8 +25,7 @@ trouble-host = { version = "*", default-features = false, features = [
     "peripheral",
     "gatt",
     "derive",   # provide macros
-    # "default-packet-pool-mtu-1024", # max out BLE MTU size to maximize bandwidth
-    "default-packet-pool-mtu-255", # FIXME required for ESP32 support
+    "default-packet-pool-mtu-1024", # max out BLE MTU size to maximize bandwidth
     # see https://github.com/embassy-rs/trouble/blob/main/host/Cargo.toml#L59
     #   for additional configuration by features
 ] }

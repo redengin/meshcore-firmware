@@ -114,8 +114,7 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     create_heap!(); // required by radio (use 64K reclaimed from bootloader)
     let ble_connector = esp_radio::ble::controller::BleConnector::new(
         peripherals.BT,
-        // esp_radio::ble::Config::default().with_max_connections(1),
-        Default::default(),
+        esp_radio::ble::Config::default().with_max_connections(1),
     )
     .unwrap();
     spawner.spawn(task_ble_host(ble_connector)).unwrap();
