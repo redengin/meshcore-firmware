@@ -5,7 +5,6 @@ use log::*;
 use embassy_futures::{join::join, select::select};
 use embassy_time::Timer;
 
-
 /// convert MAC to a string "MeshCore-XXXXXXXXXXXX"
 /// TODO move this to common method
 fn name_from_mac(mac: [u8; 6]) -> heapless::String<32> {
@@ -26,11 +25,7 @@ fn name_from_mac(mac: [u8; 6]) -> heapless::String<32> {
 }
 
 /// Run the BLE stack.
-pub async fn run<C, RNG>(
-    controller: C,
-    mac: [u8; 6],
-    random_generator: &mut RNG,
-)
+pub async fn run<C, RNG>(controller: C, mac: [u8; 6], random_generator: &mut RNG)
 where
     C: trouble_host::Controller,
     RNG: rand_core::RngCore + rand_core::CryptoRng,
@@ -48,7 +43,11 @@ where
     // create the stack
     use trouble_host::{Address, Host};
     let address: Address = Address::random(mac);
-    let stack = trouble_host::new(controller, &mut resources).set_random_address(address);
+    let stack = trouble_host::new(controller, &mut resources)
+        .set_random_address(address)
+        .set_random_generator_seed(random_generator);
+    // require pin code entry from central
+    stack.set_io_capabilities(IoCapabilities::DisplayOnly);
     let Host {
         mut peripheral,
         runner,
@@ -56,19 +55,17 @@ where
     } = stack.build();
 
     // create the BLE server
-    let _name = name_from_mac(mac);
     let server = Server::new_with_config(GapConfig::Peripheral(PeripheralConfig {
-        // name: &name,
-        name: "TrouBLE",
-        // appearance: &appearance::network_device::MESH_DEVICE,
-        appearance: &appearance::power_device::GENERIC_POWER_DEVICE,
+        name: "MeshCore",   // internal identifier (not published)
+        appearance: &appearance::network_device::MESH_DEVICE,
     }))
     .unwrap();
 
     // run the BLE host service (advertise -> connect -> serve -disconnect-> advertise)
+    let name = name_from_mac(mac);
     let _ = join(ble_task(runner), async {
         loop {
-            match advertise("Trouble Example", &mut peripheral, &server).await {
+            match advertise(&name, &mut peripheral, &server).await {
                 Ok(conn) => {
                     // set up tasks when the connection is established to a central, so they don't run when no one is connected.
                     let a = gatt_events_task(&server, &conn);
@@ -110,7 +107,7 @@ async fn ble_task<C: Controller, P: PacketPool>(mut runner: Runner<'_, C, P>) {
 
 /// Create an advertiser to use to connect to a BLE Central, and wait for it to connect.
 async fn advertise<'values, 'server, C: Controller>(
-    name: &'values str,
+    name: &str,
     peripheral: &mut Peripheral<'values, C, DefaultPacketPool>,
     server: &'server Server<'values>,
 ) -> Result<GattConnection<'values, 'server, DefaultPacketPool>, BleHostError<C::Error>> {
@@ -132,14 +129,17 @@ async fn advertise<'values, 'server, C: Controller>(
             },
         )
         .await?;
-    info!("[adv] advertising");
+    info!("[BLE] advertising as {name}");
     let conn = advertiser.accept().await?.with_attribute_server(server)?;
-    info!("[adv] connection established");
+    info!("[BLE] connection established");
     Ok(conn)
 }
 
 /// Handle GATT Events until the connection closes
-async fn gatt_events_task<P: PacketPool>(server: &Server<'_>, conn: &GattConnection<'_, '_, P>) -> Result<(), Error> {
+async fn gatt_events_task<P: PacketPool>(
+    server: &Server<'_>,
+    conn: &GattConnection<'_, '_, P>,
+) -> Result<(), Error> {
     // let level = server.battery_service.level;
     let reason = loop {
         match conn.next().await {
@@ -202,7 +202,6 @@ async fn custom_task<C: Controller, P: PacketPool>(
         Timer::after_secs(2).await;
     }
 }
-
 
 // GATT Server definition
 //==============================================================================
