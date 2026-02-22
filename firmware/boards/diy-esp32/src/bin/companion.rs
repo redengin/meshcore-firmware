@@ -143,15 +143,17 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
 }
 
 #[embassy_executor::task]
-async fn task_ble_host(
-    connector: esp_radio::ble::controller::BleConnector<'static>,
-)
-{
+async fn task_ble_host(connector: esp_radio::ble::controller::BleConnector<'static>) {
     use trouble_host::prelude::ExternalController;
     let controller: ExternalController<_, 20> = ExternalController::new(connector);
 
-    // FIXME get the real MAC
-    let mac = [0xff, 0x8f, 0x1a, 0x05, 0xe4, 0xff];
+    // get the MAC
+    let mac_address = esp_hal::efuse::Efuse::read_base_mac_address();
+    let mut mac: [u8; 6] = [0xff; 6];
+    for i in 0..mac_address.as_bytes().len() {
+        mac[i] = mac_address.as_bytes()[i];
+        if i > mac.len() { break; }
+    }
 
     info!("[BLE] Creating random number generator for security");
     let mut trng = esp_hal::rng::Trng::try_new().unwrap();
