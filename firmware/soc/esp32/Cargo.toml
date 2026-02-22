@@ -30,6 +30,9 @@ features = ["println", "colors"]
 git = "https://github.com/esp-rs/esp-hal"
 features = ["embassy", "esp-radio", "esp-alloc"]
 
+[dependencies.esp-storage]
+git = "https://github.com/esp-rs/esp-hal"
+
 # support ESP32 radio
 [dependencies.esp-radio]
 git = "https://github.com/esp-rs/esp-hal"
@@ -51,6 +54,7 @@ esp32 = [
     "esp-println/esp32",
     "esp-backtrace/esp32",
     "esp-rtos/esp32",
+    "esp-storage/esp32",
     "esp-radio/esp32",
     "esp-alloc/esp32",
     "esp-bootloader-esp-idf/esp32",
@@ -61,6 +65,7 @@ esp32s3 = [
     "esp-println/esp32s3",
     "esp-backtrace/esp32s3",
     "esp-rtos/esp32s3",
+    "esp-storage/esp32s3",
     "esp-radio/esp32s3",
     "esp-alloc/esp32s3",
     "esp-bootloader-esp-idf/esp32s3",

@@ -114,7 +114,8 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     create_heap!(); // required by radio (use 64K reclaimed from bootloader)
     let ble_connector = esp_radio::ble::controller::BleConnector::new(
         peripherals.BT,
-        esp_radio::ble::Config::default().with_max_connections(1),
+        // esp_radio::ble::Config::default().with_max_connections(1),
+        Default::default(),
     )
     .unwrap();
     spawner.spawn(task_ble_host(ble_connector)).unwrap();
@@ -146,7 +147,7 @@ async fn task_ble_host(ble_connector: esp_radio::ble::controller::BleConnector<'
     let controller: ExternalController<_, 20> = ExternalController::new(ble_connector);
 
     // FIXME get the real MAC
-    let mac = [0,0,0,0,0,0];
+    let mac = [0xff, 0x8f, 0x1a, 0x05, 0xe4, 0xff];
 
     // should run forever
     meshcore_firmware::app_interface::ble::run(controller, mac).await;
