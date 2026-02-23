@@ -1,5 +1,8 @@
+use core::any::Any;
+
 // provide logging primitives
 use log::*;
+const TAG: &str = "[BLE]";
 
 // provide scheduling primitives
 use embassy_futures::{join::join, select::select};
@@ -10,6 +13,7 @@ use embassy_time::Timer;
 fn name_from_mac(mac: [u8; 6]) -> heapless::String<32> {
     let mut ssid: heapless::String<32> = heapless::String::try_from("MeshCore-").unwrap();
     // add the MAC address
+    // FIXME currently in reversed order
     for byte in mac {
         ssid.push(hex_char(byte / 16)).unwrap();
         ssid.push(hex_char(byte % 16)).unwrap();
@@ -56,8 +60,8 @@ where
 
     // create the BLE server
     let server = Server::new_with_config(GapConfig::Peripheral(PeripheralConfig {
-        name: "MeshCore",   // internal identifier (not published)
-        appearance: &appearance::network_device::MESH_DEVICE,
+        name: "MeshCore BLE", // internal identifier (not published)
+        appearance: &appearance::network_device::MESH_DEVICE, // FIXME this doesnt' appaer to be published in advertisement
     }))
     .unwrap();
 
@@ -77,7 +81,7 @@ where
                 Err(e) => {
                     #[cfg(feature = "defmt")]
                     let e = defmt::Debug2Format(&e);
-                    // panic!("[adv] error: {:?}", e);
+                    panic!("{TAG} error: {:?}", e);
                 }
             }
         }
@@ -86,21 +90,12 @@ where
 }
 
 /// This is a background task that is required to run forever alongside any other BLE tasks.
-/// ## Alternative
-/// ```
-/// spawner.must_spawn(ble_task(runner));
-/// ...
-/// #[embassy_executor::task]
-/// async fn ble_task(mut runner: Runner<'static, SoftdeviceController<'static>>) {
-///     runner.run().await;
-/// }
-/// ```
 async fn ble_task<C: Controller, P: PacketPool>(mut runner: Runner<'_, C, P>) {
     loop {
         if let Err(e) = runner.run().await {
             #[cfg(feature = "defmt")]
             let e = defmt::Debug2Format(&e);
-            panic!("[ble_task] error: {:?}", e);
+            panic!("{TAG} error: {:?}", e);
         }
     }
 }
@@ -112,10 +107,11 @@ async fn advertise<'values, 'server, C: Controller>(
     server: &'server Server<'values>,
 ) -> Result<GattConnection<'values, 'server, DefaultPacketPool>, BleHostError<C::Error>> {
     let mut advertiser_data = [0; 31];
+    const SERVICE_UUID_MESH_PROXY_LE: [u8; 2] = [0x28, 0x18];
     let len = AdStructure::encode_slice(
         &[
             AdStructure::Flags(LE_GENERAL_DISCOVERABLE | BR_EDR_NOT_SUPPORTED),
-            AdStructure::ServiceUuids16(&[[0x0f, 0x18]]),
+            AdStructure::ServiceUuids16(&[SERVICE_UUID_MESH_PROXY_LE]),
             AdStructure::CompleteLocalName(name.as_bytes()),
         ],
         &mut advertiser_data[..],
@@ -129,48 +125,85 @@ async fn advertise<'values, 'server, C: Controller>(
             },
         )
         .await?;
-    info!("[BLE] advertising as {name}");
+    info!("{TAG} advertising as {name}");
     let conn = advertiser.accept().await?.with_attribute_server(server)?;
-    info!("[BLE] connection established");
+    info!("{TAG} connection established");
     Ok(conn)
 }
 
 /// Handle GATT Events until the connection closes
 async fn gatt_events_task<P: PacketPool>(
     server: &Server<'_>,
-    conn: &GattConnection<'_, '_, P>,
+    connection: &GattConnection<'_, '_, P>,
 ) -> Result<(), Error> {
     // let level = server.battery_service.level;
     let reason = loop {
-        match conn.next().await {
-            GattConnectionEvent::Disconnected { reason } => break reason,
+        match connection.next().await {
+            GattConnectionEvent::PassKeyDisplay(key) => {
+                info!("{TAG} pin code {key}");
+                // TODO pass this pin code to the display
+                // alternative - dictate the pin code per method parameters
+            }
+
             GattConnectionEvent::Gatt { event } => {
+                // handle GATT events
                 match &event {
-                    // FIXME handle GATT events
+                    GattEvent::Write(event) => {
+                        let event_handle = event.handle();
+                        // writable GATT attributes
+                        let gatt_rx = &server.meshcore_v1.rx;
+                        // match event handle to GATT attribute
+                        if event_handle == gatt_rx.handle {
+                            let result = server.get(gatt_rx);
+                            match result {
+                                Ok(data) => {
+                                    // TODO process the data via the codec
+                                    let _ = server.meshcore_v1.tx.notify(connection, &data).await;
+                                }
+                                Err(e) => warn!("{TAG} failed tx data read [error: {:?}", e),
+                            }
+                        } else {
+                            warn!("{TAG} ignored gatt write of [handle: {event_handle}]");
+                        }
+                    }
+
                     // GattEvent::Read(event) => {
-                    //     if event.handle() == level.handle {
-                    //         let value = server.get(&level);
-                    //         info!("[gatt] Read Event to Level Characteristic: {:?}", value);
+                    //     let event_handle = event.handle();
+                    //     // readable GATT attributes
+                    //     let gatt_tx = &server.meshcore_v1.tx;
+                    //     // match event handle to GATT attribute
+                    //     if event_handle == gatt_tx.handle {
+                    //         let result = server.get(gatt_tx);
+                    //         match result {
+                    //             Ok(data) => {
+                    //                 // TODO send the tx result
+                    //             }
+                    //             Err(e) => warn!("{TAG} failed read of tx data [error: {:?}", e),
+                    //         }
+                    //     } else {
+                    //         warn!("{TAG} ignored gatt read of [handle: {event_handle}]");
                     //     }
                     // }
-                    // GattEvent::Write(event) => {
-                    //     if event.handle() == level.handle {
-                    //         info!("[gatt] Write Event to Level Characteristic: {:?}", event.data());
-                    //     }
+
+                    _ => warn!("{TAG} unhandled GattEvent")
+                    // FIXME identify what event was missed
+                    // _ => {
+                    //     warn!("{TAG} unhandled GattEvent [event {:?}", event.type_id())
                     // }
-                    _ => {}
                 };
                 // This step is also performed at drop(), but writing it explicitly is necessary
                 // in order to ensure reply is sent.
                 match event.accept() {
                     Ok(reply) => reply.send().await,
-                    Err(e) => warn!("[gatt] error sending response: {:?}", e),
+                    Err(e) => warn!("{TAG} gatt error sending response: {:?}", e),
                 };
             }
+
+            GattConnectionEvent::Disconnected { reason } => break reason,
             _ => {} // ignore other Gatt Connection Events
         }
     };
-    info!("[gatt] disconnected: {:?}", reason);
+    info!("{TAG} disconnected: {:?}", reason);
     Ok(())
 }
 
@@ -179,7 +212,7 @@ async fn gatt_events_task<P: PacketPool>(
 /// It will also read the RSSI value every 2 seconds.
 /// and will stop when the connection is closed by the central or an error occurs.
 async fn custom_task<C: Controller, P: PacketPool>(
-    server: &Server<'_>,
+    _server: &Server<'_>,
     conn: &GattConnection<'_, '_, P>,
     stack: &Stack<'_, C, P>,
 ) {
@@ -194,9 +227,9 @@ async fn custom_task<C: Controller, P: PacketPool>(
         // };
         // read RSSI (Received Signal Strength Indicator) of the connection.
         if let Ok(rssi) = conn.raw().rssi(stack).await {
-            info!("[custom_task] RSSI: {:?}", rssi);
+            info!("{TAG} RSSI: {:?}", rssi);
         } else {
-            info!("[custom_task] error getting RSSI");
+            info!("{TAG} error getting RSSI");
             break;
         };
         Timer::after_secs(2).await;
@@ -209,7 +242,7 @@ const BLE_MTU_MAX: usize = 1024;
 use trouble_host::prelude::*;
 #[gatt_server]
 struct Server {
-    meshcore_service: MeshCoreService,
+    meshcore_v1: MeshCoreService,
 }
 
 /// BLE Service per https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md

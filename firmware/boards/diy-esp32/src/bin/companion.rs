@@ -137,7 +137,7 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     //------------------------------------------------------------------------------
 
     loop {
-        info!("Hello world!");
+        // info!("Hello world!");
         Timer::after(Duration::from_secs(1)).await;
     }
 }
@@ -149,13 +149,14 @@ async fn task_ble_host(connector: esp_radio::ble::controller::BleConnector<'stat
 
     // get the MAC
     let mac_address = esp_hal::efuse::Efuse::read_base_mac_address();
+    // FIXME this code smells, there must be a more syntantically way
     let mut mac: [u8; 6] = [0xff; 6];
     for i in 0..mac_address.as_bytes().len() {
         mac[i] = mac_address.as_bytes()[i];
         if i > mac.len() { break; }
     }
 
-    info!("[BLE] Creating random number generator for security");
+    info!("Creating random number generator for BLE security");
     let mut trng = esp_hal::rng::Trng::try_new().unwrap();
 
     // should run forever

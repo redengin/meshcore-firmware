@@ -24,6 +24,7 @@ embassy-futures = "*"
 trouble-host = { version = "*", default-features = false, features = [
     "peripheral",
     "gatt",
+    "security",
     "derive",   # provide macros
     "default-packet-pool-mtu-1024", # max out BLE MTU size to maximize bandwidth
     # see https://github.com/embassy-rs/trouble/blob/main/host/Cargo.toml#L59
