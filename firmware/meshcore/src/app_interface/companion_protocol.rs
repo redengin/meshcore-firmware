@@ -1,3 +1,6 @@
+// TODO implement as a buffered reciever that emits responses upon comprehension of the stream
+
+
 /// https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md#commands
 pub enum CommandPacketType {
     AppStart = 0x01,
