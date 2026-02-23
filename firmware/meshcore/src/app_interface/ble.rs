@@ -1,5 +1,3 @@
-use core::any::Any;
-
 // provide logging primitives
 use log::*;
 const TAG: &str = "[BLE]";
@@ -158,6 +156,8 @@ async fn gatt_events_task<P: PacketPool>(
                             match result {
                                 Ok(data) => {
                                     // TODO process the data via the codec
+
+                                    // respond via the tx attribute
                                     let _ = server.meshcore_v1.tx.notify(connection, &data).await;
                                 }
                                 Err(e) => warn!("{TAG} failed tx data read [error: {:?}", e),
