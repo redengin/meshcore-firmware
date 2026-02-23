@@ -217,7 +217,7 @@ async fn custom_task<C: Controller, P: PacketPool>(
         if let Ok(rssi) = conn.raw().rssi(stack).await {
             debug!("{TAG} RSSI: {:?}", rssi);
         } else {
-            info!("{TAG} error getting RSSI");
+            error!("{TAG} error getting RSSI");
             break;
         };
         Timer::after_secs(2).await;
