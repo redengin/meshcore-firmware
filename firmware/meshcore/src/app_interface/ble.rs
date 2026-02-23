@@ -207,27 +207,15 @@ async fn gatt_events_task<P: PacketPool>(
     Ok(())
 }
 
-/// Example task to use the BLE notifier interface.
-/// This task will notify the connected central of a counter value every 2 seconds.
-/// It will also read the RSSI value every 2 seconds.
-/// and will stop when the connection is closed by the central or an error occurs.
+/// task to use the BLE notifier interface
 async fn custom_task<C: Controller, P: PacketPool>(
     _server: &Server<'_>,
     conn: &GattConnection<'_, '_, P>,
     stack: &Stack<'_, C, P>,
 ) {
-    let mut tick: u8 = 0;
-    // let level = server.battery_service.level;
     loop {
-        tick = tick.wrapping_add(1);
-        info!("[custom_task] notifying connection of tick {}", tick);
-        // if level.notify(conn, &tick).await.is_err() {
-        //     info!("[custom_task] error notifying connection");
-        //     break;
-        // };
-        // read RSSI (Received Signal Strength Indicator) of the connection.
         if let Ok(rssi) = conn.raw().rssi(stack).await {
-            info!("{TAG} RSSI: {:?}", rssi);
+            debug!("{TAG} RSSI: {:?}", rssi);
         } else {
             info!("{TAG} error getting RSSI");
             break;
