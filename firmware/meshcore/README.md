@@ -1,20 +1,17 @@
 MeshCore Implementation
 ================================================================================
-* LoRa communication using MeshCore packets
-    * per to MeshCore's architecture designed to minimize congestion
-* BLE GATT service
-    * support the standard app
-    * provide additional GATT interfaces (see [MeshCore Role Support](#meshcore-role-support))
-* WiFi service
-    * support the standard app
-    * provide additional interfaces (see [MeshCore Role Support](#meshcore-role-support))
+* LoRa communication per MeshCore
+    * implements MeshCore design to minimize congestion
 
-MeshCore Role Support
-================================================================================
-MeshCore architecture defines roles as:
-* router - repeats packets to extend reach
-* companion - communicates with the mesh as a user
-* room - provides buffer of communications
+Application Interface
+--------------------------------------------------------------------------------
+As the MeshCore design evolves, the protocols for both LoRa communications and
+application interfaces to nodes (companion, repeater, room) are being unified.
+
+Where this implementation focuses on the needs of firwmare nodes, the
+implementation also supports use by client software.
+
+<!-- Do we extend MeshCore or fork....
 
 Companion Extension
 --------------------------------------------------------------------------------
@@ -40,6 +37,7 @@ Room Extension
 Provide the ability to update the `bot` independenatly - i.e. don't require a
 full firmware update.
 
+-->
 
 
 
