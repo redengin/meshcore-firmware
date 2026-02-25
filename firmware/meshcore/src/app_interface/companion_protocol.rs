@@ -75,7 +75,7 @@ mod command_type_tests {
             Err(_) => panic!("zerocopy is broken"),
         }
 
-        // non-exhaustive - as if zerocopy does it right once, it should
+        // non-exhaustive - if zerocopy does it right once, it should
         //  do the proper thing for all values
     }
 }
@@ -168,7 +168,7 @@ mod response_type_tests {
             Err(_) => panic!("zerocopy is broken"),
         }
 
-        // non-exhaustive - as if zerocopy does it right once, it should
+        // non-exhaustive - if zerocopy does it right once, it should
         //  do the proper thing for all values
     }
 }
