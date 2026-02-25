@@ -4,6 +4,17 @@
 ///
 /// additional info from
 /// https://github.com/andrewdavidmackenzie/meshcore-rs/blob/master/src/commands/base.rs#L18
+#[derive(
+    Debug,
+    PartialEq,
+    zerocopy::KnownLayout,
+    zerocopy::Unaligned,
+    zerocopy::Immutable,
+    zerocopy::TryFromBytes,
+    zerocopy::IntoBytes,
+)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[repr(u8)]
 pub enum CommandPacketType {
     AppStart = 1,
     SendChannelTxtMessage = 2,
@@ -45,10 +56,44 @@ pub enum CommandPacketType {
     SendBinaryReq = 50,
 }
 
+#[cfg(test)]
+mod command_type_tests {
+
+    use super::*;
+    use zerocopy::{IntoBytes, TryFromBytes};
+
+    #[test]
+    fn test_type_from_bytes() {
+        // test that zerocopy does the right thing
+        let command = CommandPacketType::AppStart;
+        let bytes = command.as_bytes();
+        match CommandPacketType::try_ref_from_prefix(bytes) {
+            Ok(p) => {
+                assert_eq!(*p.0, CommandPacketType::AppStart);
+            }
+            Err(_) => panic!("zerocopy is broken"),
+        }
+
+        // non-exhaustive - as if zerocopy does it right once, it should
+        //  do the proper thing for all values
+    }
+}
+
 /// https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md#packet-types
 ///
 /// additional info from
 /// https://github.com/andrewdavidmackenzie/meshcore-rs/blob/master/src/commands/base.rs#L18
+#[derive(
+    Debug,
+    PartialEq,
+    zerocopy::KnownLayout,
+    zerocopy::Unaligned,
+    zerocopy::Immutable,
+    zerocopy::TryFromBytes,
+    zerocopy::IntoBytes,
+)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[repr(u8)]
 pub enum ResponsePacketType {
     Ok = 0,
     Error = 1,
@@ -102,4 +147,27 @@ pub enum ResponsePacketType {
 
     /// Unknown packet type
     Unknown = 0xFF,
+}
+
+#[cfg(test)]
+mod response_type_tests {
+
+    use super::*;
+    use zerocopy::{IntoBytes, TryFromBytes};
+
+    #[test]
+    fn test_type_from_bytes() {
+        // test that zerocopy does the right thing
+        let response = ResponsePacketType::Ack;
+        let bytes = response.as_bytes();
+        match ResponsePacketType::try_ref_from_prefix(bytes) {
+            Ok(p) => {
+                assert_eq!(*p.0, ResponsePacketType::Ack);
+            }
+            Err(_) => panic!("zerocopy is broken"),
+        }
+
+        // non-exhaustive - as if zerocopy does it right once, it should
+        //  do the proper thing for all values
+    }
 }
