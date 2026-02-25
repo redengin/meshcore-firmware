@@ -9,6 +9,20 @@ pub use self::companion::Companion;
 // application interfaces (BLE, USB Serial, etc.)
 pub use trouble_host;   // BLE host library
 pub mod app_interface;
-// pub use self::interface::CompanionBle;
-// pub use self::interface::CompanionSerial;
-// pub use self::interface::CompanionWifi;
+
+pub trait MeshCoreFirmareLora {
+    // send LoRa data per MeshCore standards
+    fn lora_tx(bytes: &[u8]);
+
+    // receive LoRa data
+    fn lora_rx() -> [u8];
+}
+
+/// support MeshCore API
+pub trait MeshCoreFirmareApi {
+    fn send_channel();
+    fn get_contacts() -> ( /* FIXME */);
+    /*
+    ...
+    */
+}
