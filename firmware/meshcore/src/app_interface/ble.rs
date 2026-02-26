@@ -139,27 +139,34 @@ async fn gatt_events_task<P: PacketPool>(
         // handle events
         let mut error: Option<AttErrorCode> = None;
         match connection.next().await {
-            // PIN events
+            // PassKey events
             //------------------------------------------------------------------------------
             GattConnectionEvent::PassKeyDisplay(key) => {
                 info!("{TAG} pin code {key}");
                 // TODO pass this pin code to the display
+                debug!("{TAG} ignored GattConnectionEvent::PassKeyDisplay");
             }
             GattConnectionEvent::PassKeyInput => {
                 // TODO how to handle this
+                debug!("{TAG} ignored GattConnectionEvent::PassKeyInput");
             }
-            GattConnectionEvent::PassKeyConfirm(key) => {
+            GattConnectionEvent::PassKeyConfirm(_key_) => {
                 // TODO how to handle this
+                debug!("{TAG} ignored GattConnectionEvent::PassKeyConfirm");
             }
             GattConnectionEvent::PairingComplete {
-                security_level,
-                bond,
+                security_level: _,
+                bond: _,
             } => {
                 // TODO how to handle this
+                debug!("{TAG} ignored GattConnectionEvent::PairingComplete");
             }
-            GattConnectionEvent::PairingFailed(error) => {
+            GattConnectionEvent::PairingFailed(_error) => {
                 // TODO how to handle this
+                debug!("{TAG} ignored GattConnectionEvent::PairingFailed");
             }
+            //------------------------------------------------------------------------------
+            // GATT events
             //------------------------------------------------------------------------------
             GattConnectionEvent::Gatt { event } => {
                 // handle GATT WRITE/READ events
