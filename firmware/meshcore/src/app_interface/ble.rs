@@ -137,7 +137,6 @@ async fn gatt_events_task<P: PacketPool>(
 ) -> Result<(), Error> {
     let reason = loop {
         // handle events
-        let mut error: Option<AttErrorCode> = None;
         match connection.next().await {
             // PassKey events
             //------------------------------------------------------------------------------
@@ -170,21 +169,20 @@ async fn gatt_events_task<P: PacketPool>(
             //------------------------------------------------------------------------------
             GattConnectionEvent::Gatt { event: gatt_event } => {
                 // handle GATT WRITE/READ events
-                match &gatt_event {
-                    GattEvent::Write(write_event) => {
-                        error = handle_gatt_write(server, write_event.handle());
+                let error = match &gatt_event {
+                    GattEvent::Write(write_event) => handle_gatt_write(server, write_event.handle()),
+
+                    GattEvent::Read(read_event) => handle_gatt_read(server, read_event.handle()),
+
+                    GattEvent::Other(_other_event) => {
+                        warn!("{TAG} unhandled GattEvent::Other");
+                        Some(AttErrorCode::REQUEST_NOT_SUPPORTED)
                     }
 
-                    GattEvent::Read(read_event) => {
-                        error = handle_gatt_read(server, read_event.handle());
-                    }
-
-                    _ => {
-                        warn!("{TAG} unhandled GattEvent");
-                        error = Some(AttErrorCode::REQUEST_NOT_SUPPORTED);
-                    }
+                    GattEvent::NotAllowed(_) => Some(AttErrorCode::REQUEST_NOT_SUPPORTED)
                 };
 
+                // send the reply
                 match error {
                     None => match gatt_event.accept() {
                         Ok(reply) => reply.send().await,
@@ -298,7 +296,7 @@ async fn custom_task<C: Controller, P: PacketPool>(
 // GATT Server definition
 //==============================================================================
 const BLE_MTU_MAX: usize = 1024;
-use trouble_host::prelude::{characteristic::MEDIA_CONTROL_POINT_OPCODES_SUPPORTED, *};
+use trouble_host::prelude::{*};
 #[gatt_server]
 struct Server {
     meshcore_v1: MeshCoreService,
