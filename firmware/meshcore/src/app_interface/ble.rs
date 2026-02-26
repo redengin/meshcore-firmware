@@ -172,56 +172,11 @@ async fn gatt_events_task<P: PacketPool>(
                 // handle GATT WRITE/READ events
                 match &gatt_event {
                     GattEvent::Write(write_event) => {
-                        error = handle_gatt_write(write_event.handle());
-                        // let write_event_handle = write_event.handle();
-
-                        // // writable GATT attributes
-                        // let gatt_rx = &server.meshcore_v1.rx;
-                        // // match event handle to GATT attribute
-                        // if write_event_handle == gatt_rx.handle {
-                        //     let result = server.get(gatt_rx);
-                        //     match result {
-                        //         Ok(data) => {
-                        //             // TODO process the data via the codec
-
-                        //             // respond via the tx attribute
-                        //             // let _ = server.meshcore_v1.tx.notify(connection, &data).await;
-                        //         }
-                        //         Err(e) => {
-                        //             warn!("{TAG} failed rx data read [error: {:?}", e);
-                        //             // TODO is this the correct error code?
-                        //             error = Some(AttErrorCode::UNLIKELY_ERROR);
-                        //         }
-                        //     }
-                        // } else {
-                        //     warn!("{TAG} ignored gatt write of [handle: {write_event_handle}]");
-                        //     // TODO determine if ATTRIBUTE even exists
-                        //     error = Some(AttErrorCode::WRITE_NOT_PERMITTED);
-                        // }
+                        error = handle_gatt_write(server, write_event.handle());
                     }
 
                     GattEvent::Read(read_event) => {
-                        let read_event_handle = read_event.handle();
-                        // readable GATT attributes
-                        let gatt_tx = &server.meshcore_v1.tx;
-                        // match event handle to GATT attribute
-                        if read_event_handle == gatt_tx.handle {
-                            // TODO fill gatt_tx handle with next data
-                            // let tx_buffer = [0;100];
-                            // match server.set(event_handle, tx_buffer) {}
-
-                            // let result = server.get(gatt_tx);
-                            // match result {
-                            //     Ok(data) => {
-                            //         // TODO send the tx result
-                            //     }
-                            //     Err(e) => warn!("{TAG} failed read of tx data [error: {:?}", e),
-                            // }
-                        } else {
-                            warn!("{TAG} ignored gatt read of [handle: {read_event_handle}]");
-                            // TODO determine if ATTRIBUTE even exists
-                            error = Some(AttErrorCode::READ_NOT_PERMITTED);
-                        }
+                        error = handle_gatt_read(server, read_event.handle());
                     }
 
                     _ => {
@@ -271,14 +226,56 @@ async fn gatt_events_task<P: PacketPool>(
     Ok(())
 }
 
-fn handle_gatt_write(_target_handle: u16) -> Option<AttErrorCode>
-{
-    Some(AttErrorCode::ATTRIBUTE_NOT_FOUND)
+fn handle_gatt_write(server: &Server, write_event_handle: u16) -> Option<AttErrorCode> {
+    // writable GATT attributes
+    let gatt_rx = &server.meshcore_v1.rx;
+    // match event handle to GATT attribute
+    if write_event_handle == gatt_rx.handle {
+        let result = server.get(gatt_rx);
+        match result {
+            Ok(data) => {
+                // TODO process the data via the codec
+
+                // respond via the tx attribute
+                // let _ = server.meshcore_v1.tx.notify(connection, &data).await;
+                return None;
+            }
+            Err(e) => {
+                warn!("{TAG} failed rx data read [error: {:?}", e);
+                // TODO is this the correct error code?
+                return Some(AttErrorCode::UNLIKELY_ERROR);
+            }
+        }
+    }
+
+    warn!("{TAG} ignored gatt write of [handle: {write_event_handle}]");
+    // TODO determine if ATTRIBUTE even exists
+    // and return Some(AttErrorCode::ATTRIBUTE_NOT_FOUND)
+    return Some(AttErrorCode::WRITE_NOT_PERMITTED);
 }
 
-fn handle_gatt_read(_target_handle: u16) -> Option<AttErrorCode>
-{
-    Some(AttErrorCode::ATTRIBUTE_NOT_FOUND)
+fn handle_gatt_read(server: &Server, read_event_handle: u16) -> Option<AttErrorCode> {
+    // readable GATT attributes
+    let gatt_tx = &server.meshcore_v1.tx;
+    // match event handle to GATT attribute
+    if read_event_handle == gatt_tx.handle {
+        // TODO fill gatt_tx handle with next data
+        // let tx_buffer = [0;100];
+        // match server.set(event_handle, tx_buffer) {}
+
+        // let result = server.get(gatt_tx);
+        // match result {
+        //     Ok(data) => {
+        //         // TODO send the tx result
+        //     }
+        //     Err(e) => warn!("{TAG} failed read of tx data [error: {:?}", e),
+        // }
+    }
+
+    warn!("{TAG} ignored gatt read of [handle: {read_event_handle}]");
+    // TODO determine if ATTRIBUTE even exists
+    // and return Some(AttErrorCode::ATTRIBUTE_NOT_FOUND)
+    return Some(AttErrorCode::READ_NOT_PERMITTED);
 }
 
 /// task to use the BLE notifier interface
