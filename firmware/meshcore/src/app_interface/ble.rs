@@ -49,6 +49,7 @@ where
         .set_random_address(address)
         .set_random_generator_seed(random_generator);
     // require pin code entry from central
+    // TODO use paramater pin_code
     stack.set_io_capabilities(IoCapabilities::DisplayOnly);
     let Host {
         mut peripheral,
@@ -134,73 +135,127 @@ async fn gatt_events_task<P: PacketPool>(
     server: &Server<'_>,
     connection: &GattConnection<'_, '_, P>,
 ) -> Result<(), Error> {
-    // let level = server.battery_service.level;
     let reason = loop {
+        // handle events
+        let mut error: Option<AttErrorCode> = None;
         match connection.next().await {
+            // PIN events
+            //------------------------------------------------------------------------------
             GattConnectionEvent::PassKeyDisplay(key) => {
                 info!("{TAG} pin code {key}");
                 // TODO pass this pin code to the display
-                // alternative - dictate the pin code per method parameters
             }
-
+            GattConnectionEvent::PassKeyInput => {
+                // TODO how to handle this
+            }
+            GattConnectionEvent::PassKeyConfirm(key) => {
+                // TODO how to handle this
+            }
+            GattConnectionEvent::PairingComplete {
+                security_level,
+                bond,
+            } => {
+                // TODO how to handle this
+            }
+            GattConnectionEvent::PairingFailed(error) => {
+                // TODO how to handle this
+            }
+            //------------------------------------------------------------------------------
             GattConnectionEvent::Gatt { event } => {
-                // handle GATT events
+                // handle GATT WRITE/READ events
                 match &event {
-                    GattEvent::Write(event) => {
-                        let event_handle = event.handle();
+                    GattEvent::Write(write_event) => {
+                        let write_event_handle = write_event.handle();
                         // writable GATT attributes
                         let gatt_rx = &server.meshcore_v1.rx;
                         // match event handle to GATT attribute
-                        if event_handle == gatt_rx.handle {
+                        if write_event_handle == gatt_rx.handle {
                             let result = server.get(gatt_rx);
                             match result {
                                 Ok(data) => {
                                     // TODO process the data via the codec
 
                                     // respond via the tx attribute
-                                    let _ = server.meshcore_v1.tx.notify(connection, &data).await;
+                                    // let _ = server.meshcore_v1.tx.notify(connection, &data).await;
                                 }
-                                Err(e) => warn!("{TAG} failed tx data read [error: {:?}", e),
+                                Err(e) => {
+                                    warn!("{TAG} failed rx data read [error: {:?}", e);
+                                    // TODO is this the correct error code?
+                                    error = Some(AttErrorCode::UNLIKELY_ERROR);
+                                }
                             }
                         } else {
-                            warn!("{TAG} ignored gatt write of [handle: {event_handle}]");
+                            warn!("{TAG} ignored gatt write of [handle: {write_event_handle}]");
+                            // TODO determine if ATTRIBUTE even exists
+                            error = Some(AttErrorCode::WRITE_NOT_PERMITTED);
                         }
                     }
 
-                    // GattEvent::Read(event) => {
-                    //     let event_handle = event.handle();
-                    //     // readable GATT attributes
-                    //     let gatt_tx = &server.meshcore_v1.tx;
-                    //     // match event handle to GATT attribute
-                    //     if event_handle == gatt_tx.handle {
-                    //         let result = server.get(gatt_tx);
-                    //         match result {
-                    //             Ok(data) => {
-                    //                 // TODO send the tx result
-                    //             }
-                    //             Err(e) => warn!("{TAG} failed read of tx data [error: {:?}", e),
-                    //         }
-                    //     } else {
-                    //         warn!("{TAG} ignored gatt read of [handle: {event_handle}]");
-                    //     }
-                    // }
+                    GattEvent::Read(read_event) => {
+                        let read_event_handle = read_event.handle();
+                        // readable GATT attributes
+                        let gatt_tx = &server.meshcore_v1.tx;
+                        // match event handle to GATT attribute
+                        if read_event_handle == gatt_tx.handle {
+                            // TODO fill gatt_tx handle with next data
+                            // let tx_buffer = [0;100];
+                            // match server.set(event_handle, tx_buffer) {}
 
-                    _ => warn!("{TAG} unhandled GattEvent")
-                    // FIXME identify what event was missed
-                    // _ => {
-                    //     warn!("{TAG} unhandled GattEvent [event {:?}", event.type_id())
-                    // }
+                            // let result = server.get(gatt_tx);
+                            // match result {
+                            //     Ok(data) => {
+                            //         // TODO send the tx result
+                            //     }
+                            //     Err(e) => warn!("{TAG} failed read of tx data [error: {:?}", e),
+                            // }
+                        } else {
+                            warn!("{TAG} ignored gatt read of [handle: {read_event_handle}]");
+                            // TODO determine if ATTRIBUTE even exists
+                            error = Some(AttErrorCode::READ_NOT_PERMITTED);
+                        }
+                    }
+
+                    _ => {
+                        warn!("{TAG} unhandled GattEvent");
+                        error = Some(AttErrorCode::REQUEST_NOT_SUPPORTED);
+                    }
                 };
-                // This step is also performed at drop(), but writing it explicitly is necessary
-                // in order to ensure reply is sent.
-                match event.accept() {
-                    Ok(reply) => reply.send().await,
-                    Err(e) => warn!("{TAG} gatt error sending response: {:?}", e),
-                };
+
+                match error {
+                    None => match event.accept() {
+                        Ok(reply) => reply.send().await,
+                        Err(e) => warn!("{TAG} unable to create gatt accept reply {:?}", e),
+                    },
+                    Some(e) => match event.reject(e) {
+                        Ok(reply) => reply.send().await,
+                        Err(e) => warn!("{TAG} unable to create gatt accept reply {:?}", e),
+                    },
+                }
             }
 
             GattConnectionEvent::Disconnected { reason } => break reason,
-            _ => {} // ignore other Gatt Connection Events
+
+            // unhandled events
+            //------------------------------------------------------------------------------
+            GattConnectionEvent::PhyUpdated {
+                tx_phy: _,
+                rx_phy: _,
+            } => debug!("{TAG} ignored GattConnectionEvent::PhyUpdated"),
+            GattConnectionEvent::ConnectionParamsUpdated {
+                conn_interval: _,
+                peripheral_latency: _,
+                supervision_timeout: _,
+            } => debug!("{TAG} ignored GattConnectionEvent::ConnectionParametersUpdated"),
+            GattConnectionEvent::RequestConnectionParams(_) => {
+                debug!("{TAG} ignored GattConnectionEvent::RequestConnectionParams")
+            }
+            GattConnectionEvent::DataLengthUpdated {
+                max_tx_octets: _,
+                max_tx_time: _,
+                max_rx_octets: _,
+                max_rx_time: _,
+            } => debug!("{TAG} ignored GattConnectionEvent::DataLengthUpdated"),
+            //------------------------------------------------------------------------------
         }
     };
     info!("{TAG} disconnected: {:?}", reason);
@@ -227,7 +282,7 @@ async fn custom_task<C: Controller, P: PacketPool>(
 // GATT Server definition
 //==============================================================================
 const BLE_MTU_MAX: usize = 1024;
-use trouble_host::prelude::*;
+use trouble_host::prelude::{characteristic::MEDIA_CONTROL_POINT_OPCODES_SUPPORTED, *};
 #[gatt_server]
 struct Server {
     meshcore_v1: MeshCoreService,
