@@ -13,6 +13,9 @@ heapless = "*"
 # heapless = "0.9" # FIXME latest version supported by trouble-host
 static_cell = "*"
 zerocopy = { version = "*", features = ["derive"] }
+ringbuf = { version = "*", default-features = false }
+serde = { version = "*", default-features = false, features = ["derive"] }
+
 
 # provide embassy RTOS methods
 embassy-time = "*"
@@ -30,7 +33,8 @@ trouble-host = { version = "*", default-features = false, features = [
     # see https://github.com/embassy-rs/trouble/blob/main/host/Cargo.toml#L59
     #   for additional configuration by features
 ] }
-rand_core = { version = "*", default-features = false }
+# FIXME trouble-host anchored to old rand_core
+rand_core = { version = "0.6", default-features = false }
 
 # deprecated
 # MeshCore = { version = "*", default-features = false }

@@ -1,3 +1,13 @@
+/// https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md#commands
+///
+/// additional info from
+/// https://github.com/andrewdavidmackenzie/meshcore-rs/blob/master/src/commands/base.rs#L18
+#[derive(Debug, PartialEq)]
+pub enum CommandPacket
+{
+    AppStart
+}
+
 
 
 
