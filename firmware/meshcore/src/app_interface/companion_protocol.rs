@@ -19,8 +19,13 @@ pub enum CommandPacket {
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Debug, PartialEq)]
 pub enum CommandPacketError {
+    EmptyBuffer,
+
     /// first byte used to determine packet type, if no match, this error is returned
     InvalidFirstByte,
+
+    /// buffer doesn't contain enough for the found packet type
+    IncompleteBuffer,
 
     /// no implementation for the packet
     NotImplemented,
@@ -30,6 +35,9 @@ impl CommandPacket {
         bytes: &[u8],
     ) -> Result<(CommandPacket, usize /* used bytes */), (CommandPacketError, usize /* used bytes */)>
     {
+        if bytes.len() < 1 {
+            return Err((CommandPacketError::EmptyBuffer, 0));
+        }
         use zerocopy::TryFromBytes;
         match CommandPacketType::try_ref_from_prefix(bytes) {
             Err(_) => {
@@ -39,12 +47,16 @@ impl CommandPacket {
             Ok((packet_type, _)) => {
                 match packet_type {
                     &CommandPacketType::AppStart => {
+                        const LEN: usize = 11;
+                        if bytes.len() < LEN {
+                            return Err((CommandPacketError::IncompleteBuffer, 0));
+                        }
                         return Ok((
                             CommandPacket::AppStart {
-                                magic: 0x03,
-                                label: [0u8; 9],
+                                magic: bytes[1],
+                                label: bytes[2..11].try_into().unwrap(),
                             },
-                            10,
+                            LEN,
                         ));
                     }
 
@@ -73,7 +85,7 @@ mod command_packet_tests {
             match CommandPacket::from_bytes(&APP_START_DATA) {
                 Ok((packet, used)) => match packet {
                     CommandPacket::AppStart { magic, label: _ } => {
-                        assert_eq!(10, used);
+                        assert_eq!(APP_START_DATA.len(), used);
                         assert_eq!(0x03, magic);
                     }
                 },
