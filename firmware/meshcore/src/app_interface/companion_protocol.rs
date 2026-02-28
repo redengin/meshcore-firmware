@@ -33,6 +33,9 @@ pub enum CommandPacket<'buffer> {
         // message: &'buffer [u8; MAX_MESSAGE_LENGTH],
         message: &'buffer [u8],
     },
+    // GetContacts - TODO not described in public protocol
+    // GetDeviceTime - TODO not described in public protocol
+    // SetDeviceTime - TODO not described in public protocol
 }
 
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -81,12 +84,6 @@ impl<'buffer> CommandPacket<'buffer> {
                         ));
                     }
 
-                    &CommandPacketType::SendChannelTxtMessage => {
-                        // if we haven't implemented the packet comprehender,
-                        // treat it like an illegal header
-                        return Err((CommandPacketError::NotImplemented, 1));
-                    }
-
                     &CommandPacketType::SendChannelMessage => {
                         const MIN_LEN: usize = 8; // must be atleast one message byte
                         if bytes.len() < MIN_LEN {
@@ -95,7 +92,8 @@ impl<'buffer> CommandPacket<'buffer> {
 
                         // for usability, convert the timestamp data to a DateTime
                         let timestamp_epoch_s = i32::from_le_bytes(bytes[3..7].try_into().unwrap());
-                        let timestamp = chrono::DateTime::from_timestamp_secs(timestamp_epoch_s as i64);
+                        let timestamp =
+                            chrono::DateTime::from_timestamp_secs(timestamp_epoch_s as i64);
 
                         return Ok((
                             CommandPacket::SendChannelMessage {
@@ -107,7 +105,7 @@ impl<'buffer> CommandPacket<'buffer> {
                             },
                             // as there is no message size parameter, consume everything
                             // NOTE - async producers will fail if they don't write full frames
-                            bytes.len()
+                            bytes.len(),
                         ));
                     }
 
@@ -158,7 +156,10 @@ mod command_packet_tests {
                     assert_eq!(TEST_VECTOR.len(), used);
                     assert_eq!(0x00, *magic);
                     assert_eq!(1, *channel_index);
-                    assert_eq!(chrono::DateTime::from_timestamp_secs(1234567890).unwrap(), timestamp.expect("invalid time value"));
+                    assert_eq!(
+                        chrono::DateTime::from_timestamp_secs(1234567890).unwrap(),
+                        timestamp.expect("invalid time value")
+                    );
                     assert_eq!(TEST_VECTOR[7..], *message);
                 }
 
@@ -184,44 +185,64 @@ mod command_packet_tests {
     zerocopy::IntoBytes,
 )]
 pub enum CommandPacketType {
-    AppStart = 1,
-    SendChannelTxtMessage = 2,
-    SendChannelMessage = 3,
-    GetContacts = 4,
-    GetDeviceTime = 5,
-    SetDeviceTime = 6,
-    SendSelfAdvert = 7,
-    SetAdvertName = 8,
-    AddUpdateContact = 9,
-    SyncNextMessage = 10,
-    SetRadioParams = 11,
-    SetRadioTxPower = 12,
-    RestPath = 13,
-    SetAdvertLatLon = 14,
-    RemoveContact = 15,
-    ShareContact = 16,
-    ExportContact = 17,
-    ImportContact = 18,
-    Reboot = 19,
-    GetBattaryAndStorage = 20,
-    SetTuningParameters = 21,
-    DeviceQuery = 22,
-    ExportPrivateKey = 23,
-    ImportPrivateKey = 24,
-    SendRawData = 25,
-    SendLogin = 26,
-    SendStatusReq = 27,
-    HasConnection = 28,
-    Logout = 29,
-    GetContactByKey = 30,
-    GetChannel = 31,
-    SetChannel = 32,
-    SignStart = 33,
-    SignData = 34,
-    SignFinish = 35,
-    GetCustomVars = 40,
-    SetCustomVar = 41,
-    SendBinaryReq = 50,
+    /// https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md#1-app-start
+    AppStart = 0x01,
+
+    /// https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md#2-device-query
+    DeviceQuery = 0x16,
+
+    /// https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md#3-get-channel-info
+    GetChannelInfo = 0x1F,
+
+    /// https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md#4-set-channel
+    SetChannel = 0x20,
+
+    /// https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md#5-send-channel-message
+    SendChannelMessage = 0x03,
+
+    /// https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md#6-get-message
+    GetMessage = 0x0A,
+
+    /// https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md#7-get-battery
+    GetBattery = 0x14,
+
+
+    // SendChannelTxtMessage = 2,
+    // GetContacts = 4,
+    // GetDeviceTime = 5,
+    // SetDeviceTime = 6,
+    // SendSelfAdvert = 7,
+    // SetAdvertName = 8,
+    // AddUpdateContact = 9,
+    // SyncNextMessage = 10,
+    // SetRadioParams = 11,
+    // SetRadioTxPower = 12,
+    // RestPath = 13,
+    // SetAdvertLatLon = 14,
+    // RemoveContact = 15,
+    // ShareContact = 16,
+    // ExportContact = 17,
+    // ImportContact = 18,
+    // Reboot = 19,
+    // GetBattaryAndStorage = 20,
+    // SetTuningParameters = 21,
+    // DeviceQuery = 22,
+    // ExportPrivateKey = 23,
+    // ImportPrivateKey = 24,
+    // SendRawData = 25,
+    // SendLogin = 26,
+    // SendStatusReq = 27,
+    // HasConnection = 28,
+    // Logout = 29,
+    // GetContactByKey = 30,
+    // GetChannel = 31,
+    // SetChannel = 32,
+    // SignStart = 33,
+    // SignData = 34,
+    // SignFinish = 35,
+    // GetCustomVars = 40,
+    // SetCustomVar = 41,
+    // SendBinaryReq = 50,
 }
 
 #[cfg(test)]
