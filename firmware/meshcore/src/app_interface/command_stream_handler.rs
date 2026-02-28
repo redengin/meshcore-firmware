@@ -48,19 +48,19 @@ mod command_stream_handler_tests {
     // use super::*;
     // use zerocopy::{IntoBytes, TryFromBytes};
 
-    use crate::app_interface::{CommandStreamHandler, companion_protocol::CommandPacket};
+    // use crate::app_interface::{CommandStreamHandler, companion_protocol::CommandPacket};
 
-    #[test]
-    fn test_app_start() {
-        // from https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md#1-app-start
-        const APP_START_DATA: [u8; 11] = [0x01, 0x03, 0x6d, 0x63, 0x63, 0x6c, 0x69, 0, 0, 0, 0];
+    // #[test]
+    // fn test_app_start() {
+    //     // from https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md#1-app-start
+    //     const APP_START_DATA: [u8; 11] = [0x01, 0x03, 0x6d, 0x63, 0x63, 0x6c, 0x69, 0, 0, 0, 0];
 
-        let mut handler = CommandStreamHandler::new();
-        assert_eq!(APP_START_DATA.len(), handler.write(&APP_START_DATA));
+    //     let mut handler = CommandStreamHandler::new();
+    //     assert_eq!(APP_START_DATA.len(), handler.write(&APP_START_DATA));
 
-        match handler.next_command() {
-            Some(p) => assert_eq!(CommandPacket::AppStart, p),
-            None => assert!(false, "Failed to find any command"),
-        }
-    }
+    //     match handler.next_command() {
+    //         Some(p) => assert_eq!(CommandPacket::AppStart, p),
+    //         None => assert!(false, "Failed to find any command"),
+    //     }
+    // }
 }

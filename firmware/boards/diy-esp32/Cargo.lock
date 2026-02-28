@@ -1487,7 +1487,6 @@ dependencies = [
  "log",
  "rand_core 0.6.4",
  "ringbuf",
- "serde",
  "static_cell",
  "trouble-host",
  "zerocopy",
