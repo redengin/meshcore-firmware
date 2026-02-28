@@ -6,5 +6,6 @@ pub mod ble;
 // FIXME not necessary to expose
 pub mod companion_protocol;
 
-mod command_stream_handler;
-pub use self::command_stream_handler::CommandStreamHandler;
+// FIXME
+// mod command_stream_handler;
+// pub use self::command_stream_handler::CommandStreamHandler;

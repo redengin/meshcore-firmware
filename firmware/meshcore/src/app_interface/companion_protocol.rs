@@ -1,10 +1,105 @@
+use log::*;
+const TAG: &str = "Command Protocol";
+
 /// https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md#commands
 ///
 /// additional info from
 /// https://github.com/andrewdavidmackenzie/meshcore-rs/blob/master/src/commands/base.rs#L18
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Debug, PartialEq)]
 pub enum CommandPacket {
-    AppStart,
+    AppStart {
+        /// b"0x03" per design
+        magic: u8,
+        /// b"mccli" padded with b'\0' per design
+        label: [u8; 9],
+    },
+}
+
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+#[derive(Debug, PartialEq)]
+pub enum CommandPacketError {
+    /// first byte used to determine packet type, if no match, this error is returned
+    InvalidFirstByte,
+
+    /// no implementation for the packet
+    NotImplemented,
+}
+impl CommandPacket {
+    pub fn from_bytes(
+        bytes: &[u8],
+    ) -> Result<(CommandPacket, usize /* used bytes */), (CommandPacketError, usize /* used bytes */)>
+    {
+        use zerocopy::TryFromBytes;
+        match CommandPacketType::try_ref_from_prefix(bytes) {
+            Err(_) => {
+                return Err((CommandPacketError::InvalidFirstByte, 1));
+            }
+
+            Ok((packet_type, _)) => {
+                match packet_type {
+                    &CommandPacketType::AppStart => {
+                        return Ok((
+                            CommandPacket::AppStart {
+                                magic: 0x03,
+                                label: [0u8; 9],
+                            },
+                            10,
+                        ));
+                    }
+
+                    // if we haven't implemented the packet comprehender,
+                    // treat it like an illegal header
+                    _ => return Err((CommandPacketError::NotImplemented, 1))
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod command_packet_tests {
+
+    // use super::*;
+    // use zerocopy::{IntoBytes, TryFromBytes};
+
+    use crate::app_interface::companion_protocol::CommandPacket;
+
+    #[test]
+    fn test_from_bytes() {
+        // AppStart
+        {
+            const APP_START_DATA: [u8; 11] = [0x01, 0x03, 0x6d, 0x63, 0x63, 0x6c, 0x69, 0, 0, 0, 0];
+            match CommandPacket::from_bytes(&APP_START_DATA) {
+                Ok((packet, used)) => match packet {
+                    CommandPacket::AppStart { magic, label: _ } => {
+                        assert_eq!(10, used);
+                        assert_eq!(0x03, magic);
+                    }
+                },
+                Err(e) => panic!("unable to parse APP_START - {:?}", e),
+            }
+        }
+        //     // test that zerocopy does the right thing
+        //     let command = CommandPacketType::AppStart;
+        //     let bytes = command.as_bytes();
+        //     match CommandPacketType::try_ref_from_prefix(bytes) {
+        //         Ok(p) => assert_eq!(*p.0, CommandPacketType::AppStart),
+        //         Err(e) => panic!("zerocopy is broken, couldn't determine Ack packet type - {e}"),
+        //     }
+
+        //     // non-exhaustive - if zerocopy does it right once, it should
+        //     //  do the proper thing for all values
+
+        //     let illegal_bytes: [u8; 1] = [0xFF];
+        //     match CommandPacketType::try_ref_from_prefix(&illegal_bytes) {
+        //         Ok(p) => panic!("zerocopy is broken, illegal packet type returned {:?}", p),
+        //         Err(_) => (/* ignored */)
+        //     }
+    }
+
+    #[test]
+    fn test_into_bytes() {}
 }
 
 /// https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md#commands
@@ -84,7 +179,7 @@ mod command_type_tests {
         let illegal_bytes: [u8; 1] = [0xFF];
         match CommandPacketType::try_ref_from_prefix(&illegal_bytes) {
             Ok(p) => panic!("zerocopy is broken, illegal packet type returned {:?}", p),
-            Err(_) => (/* ignored */)
+            Err(_) => (/* ignored */),
         }
     }
 }
