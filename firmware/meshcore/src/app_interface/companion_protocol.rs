@@ -1,18 +1,34 @@
 use log::*;
 const TAG: &str = "Command Protocol";
 
+const MAX_MESSAGE_LENGTH: usize = 200;
+
+/// Immplemented per zero-copy semantics (i.e. the object is mapped to the underlying buffer,
+/// rather than copied onto the stack)
+/// 
+/// Guided by 
 /// https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md#commands
 ///
 /// additional info from
 /// https://github.com/andrewdavidmackenzie/meshcore-rs/blob/master/src/commands/base.rs#L18
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 #[derive(Debug, PartialEq)]
-pub enum CommandPacket {
+pub enum CommandPacket<'buffer> {
     AppStart {
         /// b"0x03" per design
-        magic: u8,
+        magic: &'buffer u8,
         /// b"mccli" padded with b'\0' per design
-        label: [u8; 9],
+        // label: &'buffer [u8; 9],
+        label: &'buffer [u8],
+    },
+
+    // SendChannelTxtMessage - TODO not described in public protocol
+    SendChannelMessage {
+        channel_index: &'buffer u8,
+        /// seconds since epoch (little-endian)
+        timestamp: &'buffer u32,
+        /// utf-8 of variable length
+        message: &'buffer [u8; MAX_MESSAGE_LENGTH],
     },
 }
 
@@ -30,10 +46,10 @@ pub enum CommandPacketError {
     /// no implementation for the packet
     NotImplemented,
 }
-impl CommandPacket {
+impl<'buffer> CommandPacket<'buffer> {
     pub fn from_bytes(
-        bytes: &[u8],
-    ) -> Result<(CommandPacket, usize /* used bytes */), (CommandPacketError, usize /* used bytes */)>
+        bytes: &'buffer [u8],
+    ) -> Result<(CommandPacket<'buffer>, usize /* used bytes */), (CommandPacketError, usize /* used bytes */)>
     {
         if bytes.len() < 1 {
             return Err((CommandPacketError::EmptyBuffer, 0));
@@ -53,16 +69,34 @@ impl CommandPacket {
                         }
                         return Ok((
                             CommandPacket::AppStart {
-                                magic: bytes[1],
-                                label: bytes[2..11].try_into().unwrap(),
+                                magic: &bytes[1],
+                                label: &bytes[2..11],
                             },
                             LEN,
                         ));
                     }
 
+                    &CommandPacketType::SendChannelTxtMessage => {
+                        // if we haven't implemented the packet comprehender,
+                        // treat it like an illegal header
+                        return Err((CommandPacketError::NotImplemented, 1));
+                    }
+
+                    // &CommandPacketType::SendChannelMessage => {
+                    //     const MIN_LEN: usize = 8;
+
+                    //     return Ok((
+                    //         CommandPacket::AppStart {
+                    //             magic: bytes[1],
+                    //             label: bytes[2..11].try_into().unwrap(),
+                    //         },
+                    //         MIN_LEN,
+                    //     ));
+                    // }
+
                     // if we haven't implemented the packet comprehender,
                     // treat it like an illegal header
-                    _ => return Err((CommandPacketError::NotImplemented, 1))
+                    _ => return Err((CommandPacketError::NotImplemented, 1)),
                 }
             }
         }
@@ -71,9 +105,6 @@ impl CommandPacket {
 
 #[cfg(test)]
 mod command_packet_tests {
-
-    // use super::*;
-    // use zerocopy::{IntoBytes, TryFromBytes};
 
     use crate::app_interface::companion_protocol::CommandPacket;
 
@@ -84,10 +115,13 @@ mod command_packet_tests {
             const APP_START_DATA: [u8; 11] = [0x01, 0x03, 0x6d, 0x63, 0x63, 0x6c, 0x69, 0, 0, 0, 0];
             match CommandPacket::from_bytes(&APP_START_DATA) {
                 Ok((packet, used)) => match packet {
-                    CommandPacket::AppStart { magic, label: _ } => {
+                    CommandPacket::AppStart { magic, label } => {
                         assert_eq!(APP_START_DATA.len(), used);
-                        assert_eq!(0x03, magic);
+                        assert_eq!(0x03, *magic);
+                        assert_eq!(APP_START_DATA[2..11], *label);
                     }
+
+                    _ => panic!("failed to comprehend APP_START packet"),
                 },
                 Err(e) => panic!("unable to parse APP_START - {:?}", e),
             }
@@ -172,7 +206,7 @@ pub enum CommandPacketType {
 #[cfg(test)]
 mod command_type_tests {
 
-    use super::*;
+    use crate::app_interface::companion_protocol::CommandPacketType;
     use zerocopy::{IntoBytes, TryFromBytes};
 
     #[test]
@@ -267,7 +301,7 @@ pub enum ResponsePacketType {
 #[cfg(test)]
 mod response_type_tests {
 
-    use super::*;
+    use crate::app_interface::companion_protocol::ResponsePacketType;
     use zerocopy::{IntoBytes, TryFromBytes};
 
     #[test]
