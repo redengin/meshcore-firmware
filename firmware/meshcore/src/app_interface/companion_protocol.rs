@@ -19,7 +19,6 @@ pub enum CommandPacket<'buffer> {
         /// b"0x03" per design
         magic: &'buffer u8,
         /// b"mccli" padded with b'\0' per design
-        // label: &'buffer [u8; 9],
         label: &'buffer [u8; 9],
     },
 
@@ -96,7 +95,6 @@ impl<'buffer> CommandPacket<'buffer> {
 
                         // for usability, convert the timestamp data to a DateTime
                         let timestamp_epoch_s = i32::from_le_bytes(bytes[3..7].try_into().unwrap());
-                        // let timestamp = chrono::Utc.timestamp_opt(timestamp_epoch_s as i64, 0);
                         let timestamp = chrono::DateTime::from_timestamp_secs(timestamp_epoch_s as i64);
 
                         return Ok((
