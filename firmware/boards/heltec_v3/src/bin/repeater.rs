@@ -82,15 +82,40 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     info!("LoRa interface initialized");
     //==============================================================================
 
-    info!("initializing USB Serial interface...");
     //==============================================================================
+    // initialize LoRa radio
+    info!("initializing LoRa radio...");
+    let sx126x_config = lora_phy::sx126x::Config {
+        chip: lora_phy::sx126x::Sx1262,
+        // TODO are these the correct parameters?
+        tcxo_ctrl: Some(lora_phy::sx126x::TcxoCtrlVoltage::Ctrl1V7),
+        use_dcdc: false,
+        rx_boost: true,
+    };
+    // create a lora radio instance
+    let lora_interface = lora_phy::iv::GenericSx126xInterfaceVariant::new(
+        lora_reset, lora_dio1, lora_busy, None, None,
+    )
+    .unwrap();
+    let mut lora_radio = lora_phy::LoRa::new(
+        lora_phy::sx126x::Sx126x::new(lora_spi_device, lora_interface, sx126x_config),
+        false,
+        Delay,
+    )
+    .await
+    .unwrap();
+    info!("LoRa radio initialized");
+    //==============================================================================
+
+    //==============================================================================
+    info!("initializing USB Serial interface...");
     // TODO support serial console
     warn!("USB serial interface not implemented");
     // warn!("USB serial interface initialized");
     //==============================================================================
 
-    // initialize the tasks
     //==============================================================================
+    // initialize the tasks
     info!("creating tasks...");
 
     // spawner.spawn(task_lora(lora_reset, lora_dio1, lora_busy)).unwrap();
@@ -100,31 +125,6 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
 
 
 
-    // // create a radio instance
-    // let lora_interface = lora_phy::iv::GenericSx126xInterfaceVariant::new(
-    //     lora_reset, lora_dio1, lora_busy, None, None,
-    // )
-    // .unwrap();
-
-    // let sx126x_config = lora_phy::sx126x::Config {
-    //     chip: lora_phy::sx126x::Sx1262,
-    //     // TODO are these the correct parameters?
-    //     //----------------------------------------------------------------------
-    //     tcxo_ctrl: Some(lora_phy::sx126x::TcxoCtrlVoltage::Ctrl1V7),
-    //     use_dcdc: false,
-    //     rx_boost: true,
-    //     //----------------------------------------------------------------------
-    // };
-    // let mut lora_radio = lora_phy::LoRa::new(
-    //     lora_phy::sx126x::Sx126x::new(lora_spi_device, lora_interface, sx126x_config),
-    //     false,
-    //     Delay,
-    // )
-    // .await
-    // .unwrap();
-    // info!("LoRa radio initialized");
-    //==============================================================================
-
     // idle loop
     loop {
         info!("IDLE - going to sleep");
@@ -133,11 +133,6 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     }
 }
 
-// #[embassy_executor::task]
-// async fn task_lora<RK,DLY>(lora_radio: lora_phy::LoRa<RK, DLY>)
-// {
-
-// }
 
 // #[embassy_executor::task]
 // async fn task_ble_host(connector: esp_radio::ble::controller::BleConnector<'static>) {
