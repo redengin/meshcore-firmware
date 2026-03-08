@@ -22,6 +22,15 @@ pub enum CommandPacket<'buffer> {
         label: &'buffer [u8; 9],
     },
 
+    DeviceQuery {
+        /// b"0x03" per design
+        magic: &'buffer u8,
+    },
+
+    GetChannelInfo {
+        channel_index: &'buffer u8,
+    },
+
     // SendChannelTxtMessage - TODO not described in public protocol
     SendChannelMessage {
         /// b"0x00" per design
@@ -84,6 +93,22 @@ impl<'buffer> CommandPacket<'buffer> {
                         ));
                     }
 
+                    &CommandPacketType::DeviceQuery => {
+                        const LEN: usize = 2;
+                        if bytes.len() < LEN {
+                            return Err((CommandPacketError::IncompleteBuffer, 0));
+                        }
+                        return Ok((CommandPacket::DeviceQuery { magic: &bytes[1] }, LEN));
+                    }
+
+                    &CommandPacketType::GetChannelInfo => {
+                        const LEN: usize = 2;
+                        if bytes.len() < LEN {
+                            return Err((CommandPacketError::IncompleteBuffer, 0));
+                        }
+                        return Ok((CommandPacket::GetChannelInfo { channel_index: &bytes[1] }, LEN));
+                    }
+
                     &CommandPacketType::SendChannelMessage => {
                         const MIN_LEN: usize = 8; // must be atleast one message byte
                         if bytes.len() < MIN_LEN {
@@ -137,6 +162,38 @@ mod command_packet_tests {
                 _ => panic!("failed to comprehend APP_START packet"),
             },
             Err(e) => panic!("unable to parse APP_START - {:?}", e),
+        }
+    }
+
+    #[test]
+    fn test_device_query_from_bytes() {
+        const TEST_VECTOR: [u8; 2] = [0x16, 0x03];
+        match CommandPacket::from_bytes(&TEST_VECTOR) {
+            Ok((packet, used)) => match packet {
+                CommandPacket::DeviceQuery { magic } => {
+                    assert_eq!(TEST_VECTOR.len(), used);
+                    assert_eq!(0x03, *magic);
+                }
+
+                _ => panic!("failed to comprehend DEVICE_QUERY packet"),
+            },
+            Err(e) => panic!("unable to parse DEVICE_QUERY - {:?}", e),
+        }
+    }
+
+    #[test]
+    fn test_get_channel_info_from_bytes() {
+        const TEST_VECTOR: [u8; 2] = [0x1F, 0x01];
+        match CommandPacket::from_bytes(&TEST_VECTOR) {
+            Ok((packet, used)) => match packet {
+                CommandPacket::GetChannelInfo { channel_index } => {
+                    assert_eq!(TEST_VECTOR.len(), used);
+                    assert_eq!(0x01, *channel_index);
+                }
+
+                _ => panic!("failed to comprehend GET_CHANNEL_INFO packet"),
+            },
+            Err(e) => panic!("unable to parse GET_CHANNEL_INFO - {:?}", e),
         }
     }
 
@@ -205,8 +262,6 @@ pub enum CommandPacketType {
 
     /// https://github.com/meshcore-dev/MeshCore/blob/main/docs/companion_protocol.md#7-get-battery
     GetBattery = 0x14,
-
-
     // SendChannelTxtMessage = 2,
     // GetContacts = 4,
     // GetDeviceTime = 5,
