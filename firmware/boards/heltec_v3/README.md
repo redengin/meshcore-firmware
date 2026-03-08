@@ -4,8 +4,8 @@ Meshcore firmware for Heltec v3
 
 ## Usage
 ```sh
-# flash companion firmware
-cargo run --bin companion
+# flash repeater firmware
+cargo run --bin repeater
 ```
 
 Espressif Rust (esp-rs)
