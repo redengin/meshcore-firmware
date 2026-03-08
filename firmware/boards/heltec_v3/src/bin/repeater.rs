@@ -24,17 +24,16 @@ static LORA_SPI_BUS: static_cell::StaticCell<
 async fn main(spawner: embassy_executor::Spawner) -> ! {
     // initialize the SoC interface
     let peripherals = esp_hal::init(
-        esp_hal::Config::default()
-        // TODO do we want max performance?
-        // .with_cpu_clock(esp_hal::clock::CpuClock::max()),
+        esp_hal::Config::default(), // TODO do we want max performance?
+                                    // .with_cpu_clock(esp_hal::clock::CpuClock::max()),
     );
 
     // initialize logging
     esp_println::logger::init_logger_from_env();
     info!("initializing...");
 
-    info!("initializing RTOS...");
     //==============================================================================
+    info!("initializing RTOS...");
     use esp_hal::timer::timg::TimerGroup;
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     use esp_hal::interrupt::software::SoftwareInterruptControl;
@@ -43,14 +42,12 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     info!("RTOS initialized");
     //==============================================================================
 
-    info!("initializing LoRA radio...");
     //==============================================================================
-    // the following initializes a heltec v3 sx1262
+    info!("initializing LoRA interface...");
     // heltec v3 pins https://heltec.org/wp-content/uploads/2023/09/pin.png
+    // configure GPIO pins
     let lora_nss = esp_hal::gpio::Output::new(
-        // peripherals.GPIO8,
-        // FIXME GPIO8 not allowed on esp32 (hangs rather than panics), so remapping
-        peripherals.GPIO26,
+        peripherals.GPIO8,
         esp_hal::gpio::Level::High,
         esp_hal::gpio::OutputConfig::default(),
     );
@@ -66,11 +63,12 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
         esp_hal::gpio::Input::new(peripherals.GPIO13, esp_hal::gpio::InputConfig::default());
     let lora_dio1 =
         esp_hal::gpio::Input::new(peripherals.GPIO14, esp_hal::gpio::InputConfig::default());
-    //--------------------------------------------------------------------------
+    // create the SPI bus
+    const SX1262_SPI_MHZ: u32 = 16; // recommended SPI frequency
     let lora_spi = esp_hal::spi::master::Spi::new(
         peripherals.SPI2,
         esp_hal::spi::master::Config::default()
-            .with_frequency(esp_hal::time::Rate::from_khz(100))
+            .with_frequency(esp_hal::time::Rate::from_mhz(SX1262_SPI_MHZ))
             .with_mode(esp_hal::spi::Mode::_0),
     )
     .unwrap()
@@ -78,39 +76,68 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     .with_mosi(lora_mosi)
     .with_miso(lora_miso)
     .into_async();
-    info!("initializing LoRA radio... GOT HERE");
     let lora_spi_bus = LORA_SPI_BUS.init(Mutex::new(lora_spi));
     let lora_spi_device =
         embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice::new(lora_spi_bus, lora_nss);
-    // create a radio instance
-    let lora_interface = lora_phy::iv::GenericSx126xInterfaceVariant::new(
-        lora_reset, lora_dio1, lora_busy, None, None,
-    )
-    .unwrap();
-    let sx126x_config = lora_phy::sx126x::Config {
-        chip: lora_phy::sx126x::Sx1262,
-        // TODO are these the correct parameters?
-        //----------------------------------------------------------------------
-        tcxo_ctrl: Some(lora_phy::sx126x::TcxoCtrlVoltage::Ctrl1V7),
-        use_dcdc: false,
-        rx_boost: true,
-        //----------------------------------------------------------------------
-    };
-    let mut lora_radio = lora_phy::LoRa::new(
-        lora_phy::sx126x::Sx126x::new(lora_spi_device, lora_interface, sx126x_config),
-        false,
-        Delay,
-    )
-    .await
-    .unwrap();
-    info!("LoRa radio initialized");
+    info!("LoRa interface initialized");
     //==============================================================================
 
+    info!("initializing USB Serial interface...");
+    //==============================================================================
+    // TODO support serial console
+    warn!("USB serial interface not implemented");
+    // warn!("USB serial interface initialized");
+    //==============================================================================
+
+    // initialize the tasks
+    //==============================================================================
+    info!("creating tasks...");
+
+    // spawner.spawn(task_lora(lora_reset, lora_dio1, lora_busy)).unwrap();
+
+    info!("all tasks created");
+    //==============================================================================
+
+
+
+    // // create a radio instance
+    // let lora_interface = lora_phy::iv::GenericSx126xInterfaceVariant::new(
+    //     lora_reset, lora_dio1, lora_busy, None, None,
+    // )
+    // .unwrap();
+
+    // let sx126x_config = lora_phy::sx126x::Config {
+    //     chip: lora_phy::sx126x::Sx1262,
+    //     // TODO are these the correct parameters?
+    //     //----------------------------------------------------------------------
+    //     tcxo_ctrl: Some(lora_phy::sx126x::TcxoCtrlVoltage::Ctrl1V7),
+    //     use_dcdc: false,
+    //     rx_boost: true,
+    //     //----------------------------------------------------------------------
+    // };
+    // let mut lora_radio = lora_phy::LoRa::new(
+    //     lora_phy::sx126x::Sx126x::new(lora_spi_device, lora_interface, sx126x_config),
+    //     false,
+    //     Delay,
+    // )
+    // .await
+    // .unwrap();
+    // info!("LoRa radio initialized");
+    //==============================================================================
+
+    // idle loop
     loop {
-        info!("Hello world!");
+        info!("IDLE - going to sleep");
+        // TODO conserve power.... awake upon need...
         Timer::after(Duration::from_secs(1)).await;
     }
 }
+
+// #[embassy_executor::task]
+// async fn task_lora<RK,DLY>(lora_radio: lora_phy::LoRa<RK, DLY>)
+// {
+
+// }
 
 // #[embassy_executor::task]
 // async fn task_ble_host(connector: esp_radio::ble::controller::BleConnector<'static>) {
