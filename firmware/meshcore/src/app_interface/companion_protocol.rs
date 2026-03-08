@@ -28,10 +28,19 @@ pub enum CommandPacket<'buffer> {
     },
 
     GetChannelInfo {
+        /// 0 for public channels
+        /// 1-7 available for private channels
         channel_index: &'buffer u8,
     },
 
-    // SendChannelTxtMessage - TODO not described in public protocol
+    SetChannel {
+        /// 0 for public channels
+        /// 1-7 available for private channels
+        channel_index: &'buffer u8,
+        channel_name: &'buffer [u8; 32], // UTF-8, null-padded
+        secret: &'buffer [u8; 32],       // all zeros for public channels
+    },
+
     SendChannelMessage {
         /// b"0x00" per design
         magic: &'buffer u8,
@@ -42,6 +51,11 @@ pub enum CommandPacket<'buffer> {
         // message: &'buffer [u8; MAX_MESSAGE_LENGTH],
         message: &'buffer [u8],
     },
+
+    GetMessage {},
+
+    GetBattery {},
+    // SendChannelTxtMessage - TODO not described in public protocol
     // GetContacts - TODO not described in public protocol
     // GetDeviceTime - TODO not described in public protocol
     // SetDeviceTime - TODO not described in public protocol
@@ -106,7 +120,27 @@ impl<'buffer> CommandPacket<'buffer> {
                         if bytes.len() < LEN {
                             return Err((CommandPacketError::IncompleteBuffer, 0));
                         }
-                        return Ok((CommandPacket::GetChannelInfo { channel_index: &bytes[1] }, LEN));
+                        return Ok((
+                            CommandPacket::GetChannelInfo {
+                                channel_index: &bytes[1],
+                            },
+                            LEN,
+                        ));
+                    }
+
+                    &CommandPacketType::SetChannel => {
+                        const LEN: usize = 66;
+                        if bytes.len() < LEN {
+                            return Err((CommandPacketError::IncompleteBuffer, 0));
+                        }
+                        return Ok((
+                            CommandPacket::SetChannel {
+                                channel_index: &bytes[1],
+                                channel_name: bytes[2..34].try_into().unwrap(),
+                                secret: bytes[34..66].try_into().unwrap(),
+                            },
+                            LEN,
+                        ));
                     }
 
                     &CommandPacketType::SendChannelMessage => {
@@ -132,6 +166,22 @@ impl<'buffer> CommandPacket<'buffer> {
                             // NOTE - async producers will fail if they don't write full frames
                             bytes.len(),
                         ));
+                    }
+
+                    &CommandPacketType::GetMessage => {
+                        const LEN: usize = 1;
+                        if bytes.len() < LEN {
+                            return Err((CommandPacketError::IncompleteBuffer, 0));
+                        }
+                        return Ok((CommandPacket::GetMessage {}, LEN));
+                    }
+
+                    &CommandPacketType::GetBattery => {
+                        const LEN: usize = 1;
+                        if bytes.len() < LEN {
+                            return Err((CommandPacketError::IncompleteBuffer, 0));
+                        }
+                        return Ok((CommandPacket::GetBattery {}, LEN));
                     }
 
                     // if we haven't implemented the packet comprehender,
@@ -198,6 +248,34 @@ mod command_packet_tests {
     }
 
     #[test]
+    fn test_set_channel_from_bytes() {
+        const TEST_VECTOR: [u8; 66] = [
+            0x20, 0x01, // SMS - name of channel
+            0x53, 0x4d, 0x53, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, // secret
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0,
+        ];
+        match CommandPacket::from_bytes(&TEST_VECTOR) {
+            Ok((packet, used)) => match packet {
+                CommandPacket::SetChannel {
+                    channel_index,
+                    channel_name,
+                    secret,
+                } => {
+                    assert_eq!(TEST_VECTOR.len(), used);
+                    assert_eq!(0x01, *channel_index);
+                    assert_eq!(TEST_VECTOR[2..34], *channel_name);
+                    assert_eq!(TEST_VECTOR[34..], *secret);
+                }
+
+                _ => panic!("failed to comprehend SET_CHANNEL packet"),
+            },
+            Err(e) => panic!("unable to parse SET_CHANNEL - {:?}", e),
+        }
+    }
+
+    #[test]
     fn test_send_channel_message_from_bytes() {
         const TEST_VECTOR: [u8; 12] = [
             0x03, 0x00, 0x01, 0xD2, 0x02, 0x96, 0x49, 0x48, 0x65, 0x6C, 0x6C, 0x6F,
@@ -220,9 +298,39 @@ mod command_packet_tests {
                     assert_eq!(TEST_VECTOR[7..], *message);
                 }
 
-                _ => panic!("failed to comprehend APP_START packet"),
+                _ => panic!("failed to comprehend SEND_CHANNEL_MESSAGE packet"),
             },
-            Err(e) => panic!("unable to parse APP_START - {:?}", e),
+            Err(e) => panic!("unable to parse SEND_CHANNEL_MESSAGE - {:?}", e),
+        }
+    }
+
+    #[test]
+    fn test_get_message_from_bytes() {
+        const TEST_VECTOR: [u8; 1] = [0x0A];
+        match CommandPacket::from_bytes(&TEST_VECTOR) {
+            Ok((packet, used)) => match packet {
+                CommandPacket::GetMessage {} => {
+                    assert_eq!(TEST_VECTOR.len(), used);
+                }
+
+                _ => panic!("failed to comprehend GET_MESSAGE packet"),
+            },
+            Err(e) => panic!("unable to parse GET_MESSAGE - {:?}", e),
+        }
+    }
+
+    #[test]
+    fn test_get_battery_from_bytes() {
+        const TEST_VECTOR: [u8; 1] = [0x14];
+        match CommandPacket::from_bytes(&TEST_VECTOR) {
+            Ok((packet, used)) => match packet {
+                CommandPacket::GetBattery {} => {
+                    assert_eq!(TEST_VECTOR.len(), used);
+                }
+
+                _ => panic!("failed to comprehend GET_BATTERY packet"),
+            },
+            Err(e) => panic!("unable to parse GET_BATTERY - {:?}", e),
         }
     }
 }
