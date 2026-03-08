@@ -96,16 +96,14 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
         rx_boost: true,
         //----------------------------------------------------------------------
     };
-    // FIXME disabling as I have no radio for development
-    // let mut lora_radio = lora_phy::LoRa::new(
-    //     lora_phy::sx126x::Sx126x::new(lora_spi_device, lora_interface, sx126x_config),
-    //     false,
-    //     Delay,
-    // )
-    // .await
-    // .unwrap();
+    let mut lora_radio = lora_phy::LoRa::new(
+        lora_phy::sx126x::Sx126x::new(lora_spi_device, lora_interface, sx126x_config),
+        false,
+        Delay,
+    )
+    .await
+    .unwrap();
     info!("LoRa radio initialized");
-    // warn!("LoRa radio left uninitialized");
     //==============================================================================
 
     loop {
