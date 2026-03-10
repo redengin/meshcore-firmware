@@ -4,7 +4,7 @@
 // provide the shared crates via re-export
 use common::*;
 use soc_esp32::*; // provides the panic handler
-// use meshcore_firmware::*;
+use meshcore_firmware::*;
 
 // provide logging primitives
 use log::*;
@@ -118,7 +118,7 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     // initialize the tasks
     info!("creating tasks...");
 
-    // spawner.spawn(task_lora(lora_reset, lora_dio1, lora_busy)).unwrap();
+    // spawner.spawn(task_lora(lora_radio)).unwrap();
 
     info!("all tasks created");
     //==============================================================================
@@ -132,6 +132,14 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
         Timer::after(Duration::from_secs(1)).await;
     }
 }
+
+
+
+// #[embassy_executor::task]
+// async fn task_lora(lora_radio: lora_phy::LoRa<dyn lora_phy::sx126x::Sx126xVariant + 'static, Delay>){
+
+
+// }
 
 
 // #[embassy_executor::task]

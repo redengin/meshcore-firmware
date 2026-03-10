@@ -22,7 +22,7 @@ embassy-sync = "*"
 embassy-futures = "*"
 
 # provide timestamping support
-chrono = "*"
+chrono = { version = "*", default-features = false }
 
 
 # BLE service
@@ -53,4 +53,5 @@ defmt = ["dep:defmt", "embassy-sync/defmt", "trouble-host/defmt"]
 
 std = [
     # "MeshCore/std"
+    "chrono/default",
 ]

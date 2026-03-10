@@ -10,19 +10,19 @@ pub use self::companion::Companion;
 pub use trouble_host;   // BLE host library
 pub mod app_interface;
 
-pub trait MeshCoreFirmareLora {
-    // send LoRa data per MeshCore standards
-    fn lora_tx(bytes: &[u8]);
+// pub trait MeshCoreFirmareLora {
+//     // send LoRa data per MeshCore standards
+//     fn lora_tx(bytes: &[u8]);
 
-    // receive LoRa data
-    fn lora_rx() -> [u8];
-}
+//     // receive LoRa data
+//     fn lora_rx() -> [u8];
+// }
 
-/// support MeshCore API
-pub trait MeshCoreFirmareApi {
-    fn send_channel();
-    fn get_contacts() -> ( /* FIXME */);
-    /*
-    ...
-    */
-}
+// /// support MeshCore API
+// pub trait MeshCoreFirmareApi {
+//     fn send_channel();
+//     fn get_contacts() -> ( /* FIXME */);
+//     /*
+//     ...
+//     */
+// }
