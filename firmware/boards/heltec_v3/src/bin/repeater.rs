@@ -116,30 +116,30 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
 
     //==============================================================================
     // initialize the tasks
-    info!("creating tasks...");
-
-    // spawner.spawn(task_lora(lora_radio)).unwrap();
-
-    info!("all tasks created");
+    info!("creating mesh task...");
+    spawner.spawn(task_mesh()).unwrap();
+    info!("mesh task created");
     //==============================================================================
 
 
 
-    // idle loop
+    // TODO power saving during IDLE
+    // Does esp32 embassy alread do this?
+
+
     loop {
-        info!("IDLE - going to sleep");
-        // TODO conserve power.... awake upon need...
+        info!("FIXME - not ready to leave main");
         Timer::after(Duration::from_secs(1)).await;
     }
 }
 
 
 
-// #[embassy_executor::task]
-// async fn task_lora(lora_radio: lora_phy::LoRa<dyn lora_phy::sx126x::Sx126xVariant + 'static, Delay>){
+#[embassy_executor::task]
+async fn task_mesh() {
 
 
-// }
+}
 
 
 // #[embassy_executor::task]
