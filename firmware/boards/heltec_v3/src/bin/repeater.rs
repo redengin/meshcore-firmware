@@ -3,6 +3,7 @@
 
 // provide the shared crates via re-export
 use common::*;
+use esp_hal::peripherals;
 use soc_esp32::*; // provides the panic handler
 use meshcore_firmware::*;
 
@@ -20,8 +21,7 @@ static LORA_SPI_BUS: static_cell::StaticCell<
 > = static_cell::StaticCell::new();
 
 #[soc_esp32::esp_rtos::main]
-// async fn main(spawner: soc_esp32::embassy_executor::Spawner) -> ! {
-async fn main(spawner: embassy_executor::Spawner) -> ! {
+async fn main(spawner: embassy_executor::Spawner) {
     // initialize the SoC interface
     let peripherals = esp_hal::init(
         esp_hal::Config::default(), // TODO do we want max performance?
@@ -46,6 +46,16 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     info!("initializing LoRA interface...");
     // heltec v3 pins https://heltec.org/wp-content/uploads/2023/09/pin.png
     // configure GPIO pins
+    let lora_reset = esp_hal::gpio::Output::new(
+        peripherals.GPIO12,
+        esp_hal::gpio::Level::Low,
+        esp_hal::gpio::OutputConfig::default(),
+    );
+    let lora_dio =
+        esp_hal::gpio::Input::new(peripherals.GPIO14, esp_hal::gpio::InputConfig::default());
+    let lora_busy =
+        esp_hal::gpio::Input::new(peripherals.GPIO13, esp_hal::gpio::InputConfig::default());
+    // configure SPI interface
     let lora_nss = esp_hal::gpio::Output::new(
         peripherals.GPIO8,
         esp_hal::gpio::Level::High,
@@ -54,19 +64,61 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     let lora_sck = peripherals.GPIO9;
     let lora_mosi = peripherals.GPIO10;
     let lora_miso = peripherals.GPIO11;
-    let lora_reset = esp_hal::gpio::Output::new(
-        peripherals.GPIO12,
-        esp_hal::gpio::Level::Low,
-        esp_hal::gpio::OutputConfig::default(),
-    );
-    let lora_busy =
-        esp_hal::gpio::Input::new(peripherals.GPIO13, esp_hal::gpio::InputConfig::default());
-    let lora_dio1 =
-        esp_hal::gpio::Input::new(peripherals.GPIO14, esp_hal::gpio::InputConfig::default());
-    // create the SPI bus
+    info!("LoRa interface initialized");
+    //==============================================================================
+
+    //==============================================================================
+    info!("initializing USB Serial interface...");
+    // TODO support serial console
+    warn!("USB serial interface not implemented");
+    // warn!("USB serial interface initialized");
+    //==============================================================================
+
+    //==============================================================================
+    // initialize the tasks
+    info!("creating mesh task...");
+    spawner.spawn(task_mesh(lora_reset, lora_dio, lora_busy, 
+        peripherals.SPI2,
+        lora_nss, lora_sck, lora_mosi, lora_miso)).unwrap();
+    info!("mesh task created");
+    //==============================================================================
+
+
+
+    // TODO power saving during IDLE
+    // Does esp32 embassy alread do this?
+}
+
+
+
+#[embassy_executor::task]
+async fn task_mesh(
+    lora_reset: esp_hal::gpio::Output<'static>,
+    lora_dio: esp_hal::gpio::Input<'static>,
+    lora_busy: esp_hal::gpio::Input<'static>,
+    // lora_spi_device: embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice<'static, >,
+    spi: esp_hal::peripherals::SPI2<'static>,
+    lora_nss: esp_hal::gpio::Output<'static>,
+    lora_sck: esp_hal::peripherals::GPIO9<'static>,
+    lora_mosi: esp_hal::peripherals::GPIO10<'static>,
+    lora_miso: esp_hal::peripherals::GPIO11<'static>,
+) {
+    info!("initializing LoRa radio...");
+    let sx126x_config = lora_phy::sx126x::Config {
+        chip: lora_phy::sx126x::Sx1262,
+        // TODO are these the correct parameters?
+        tcxo_ctrl: Some(lora_phy::sx126x::TcxoCtrlVoltage::Ctrl1V7),
+        use_dcdc: false,
+        rx_boost: true,
+    };
+    // create a lora radio instance
+    let lora_interface = lora_phy::iv::GenericSx126xInterfaceVariant::new(
+        lora_reset, lora_dio, lora_busy, None, None,
+    )
+    .unwrap();
     const SX1262_SPI_MHZ: u32 = 16; // recommended SPI frequency
     let lora_spi = esp_hal::spi::master::Spi::new(
-        peripherals.SPI2,
+        spi,
         esp_hal::spi::master::Config::default()
             .with_frequency(esp_hal::time::Rate::from_mhz(SX1262_SPI_MHZ))
             .with_mode(esp_hal::spi::Mode::_0),
@@ -80,23 +132,7 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     let lora_spi_device =
         embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice::new(lora_spi_bus, lora_nss);
     info!("LoRa interface initialized");
-    //==============================================================================
 
-    //==============================================================================
-    // initialize LoRa radio
-    info!("initializing LoRa radio...");
-    let sx126x_config = lora_phy::sx126x::Config {
-        chip: lora_phy::sx126x::Sx1262,
-        // TODO are these the correct parameters?
-        tcxo_ctrl: Some(lora_phy::sx126x::TcxoCtrlVoltage::Ctrl1V7),
-        use_dcdc: false,
-        rx_boost: true,
-    };
-    // create a lora radio instance
-    let lora_interface = lora_phy::iv::GenericSx126xInterfaceVariant::new(
-        lora_reset, lora_dio1, lora_busy, None, None,
-    )
-    .unwrap();
     let mut lora_radio = lora_phy::LoRa::new(
         lora_phy::sx126x::Sx126x::new(lora_spi_device, lora_interface, sx126x_config),
         false,
@@ -105,39 +141,11 @@ async fn main(spawner: embassy_executor::Spawner) -> ! {
     .await
     .unwrap();
     info!("LoRa radio initialized");
-    //==============================================================================
-
-    //==============================================================================
-    info!("initializing USB Serial interface...");
-    // TODO support serial console
-    warn!("USB serial interface not implemented");
-    // warn!("USB serial interface initialized");
-    //==============================================================================
-
-    //==============================================================================
-    // initialize the tasks
-    info!("creating mesh task...");
-    spawner.spawn(task_mesh()).unwrap();
-    info!("mesh task created");
-    //==============================================================================
-
-
-
-    // TODO power saving during IDLE
-    // Does esp32 embassy alread do this?
-
 
     loop {
-        info!("FIXME - not ready to leave main");
+        info!("running mesh...");
         Timer::after(Duration::from_secs(1)).await;
     }
-}
-
-
-
-#[embassy_executor::task]
-async fn task_mesh() {
-
 
 }
 
