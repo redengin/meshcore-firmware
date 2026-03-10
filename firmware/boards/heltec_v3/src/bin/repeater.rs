@@ -148,7 +148,7 @@ async fn task_mesh(
     info!("LoRa radio initialized");
 
     // run the repeater handler
-    let repeater = meshcore_firmware::Repeater::new(lora_radio);
+    let mut repeater = meshcore_firmware::Repeater::new(lora_radio);
     repeater.run().await;
 
     error!("repeater handler stopped");

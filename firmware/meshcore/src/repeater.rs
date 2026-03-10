@@ -17,7 +17,19 @@ where
         }
     }
 
-    pub async fn run(&self) -> ! {
+    /// handle repeater tasks forever
+    pub async fn run(&mut self) -> ! {
+        // configure radio
+        // TODO use dynamically configured value
+        const LORA_BAND_HZ: u32 = (910.525 * 1E6) as u32;
+        let mod_params = self.lora_radio.create_modulation_params(
+            lora_phy::mod_params::SpreadingFactor::_7,
+            lora_phy::mod_params::Bandwidth::_62KHz,
+            lora_phy::mod_params::CodingRate::_4_5,
+            LORA_BAND_HZ,
+        ).unwrap();
+
+
         loop {}
     }
 }
