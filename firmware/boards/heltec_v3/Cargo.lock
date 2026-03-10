@@ -1487,6 +1487,7 @@ dependencies = [
  "embassy-time",
  "heapless 0.9.2",
  "log",
+ "lora-phy",
  "rand_core 0.6.4",
  "ringbuf",
  "static_cell",

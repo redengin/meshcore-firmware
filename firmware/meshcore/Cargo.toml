@@ -21,6 +21,10 @@ embassy-time = "*"
 embassy-sync = "*"
 embassy-futures = "*"
 
+# provide LoRa radio support
+lora-phy = "*"
+
+
 # provide timestamping support
 chrono = { version = "*", default-features = false }
 
