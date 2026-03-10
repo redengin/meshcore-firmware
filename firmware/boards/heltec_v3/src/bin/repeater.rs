@@ -4,8 +4,8 @@
 // provide the shared crates via re-export
 use common::*;
 use esp_hal::peripherals;
-use soc_esp32::*; // provides the panic handler
 use meshcore_firmware::*;
+use soc_esp32::*; // provides the panic handler
 
 // provide logging primitives
 use log::*;
@@ -24,8 +24,9 @@ static LORA_SPI_BUS: static_cell::StaticCell<
 async fn main(spawner: embassy_executor::Spawner) {
     // initialize the SoC interface
     let peripherals = esp_hal::init(
-        esp_hal::Config::default(), // TODO do we want max performance?
-                                    // .with_cpu_clock(esp_hal::clock::CpuClock::max()),
+        esp_hal::Config::default(),
+        // TODO do we want max performance?
+        // .with_cpu_clock(esp_hal::clock::CpuClock::max()),
     );
 
     // initialize logging
@@ -77,19 +78,24 @@ async fn main(spawner: embassy_executor::Spawner) {
     //==============================================================================
     // initialize the tasks
     info!("creating mesh task...");
-    spawner.spawn(task_mesh(lora_reset, lora_dio, lora_busy, 
-        peripherals.SPI2,
-        lora_nss, lora_sck, lora_mosi, lora_miso)).unwrap();
+    spawner
+        .spawn(task_mesh(
+            lora_reset,
+            lora_dio,
+            lora_busy,
+            peripherals.SPI2,
+            lora_nss,
+            lora_sck,
+            lora_mosi,
+            lora_miso,
+        ))
+        .unwrap();
     info!("mesh task created");
     //==============================================================================
-
-
 
     // TODO power saving during IDLE
     // Does esp32 embassy alread do this?
 }
-
-
 
 #[embassy_executor::task]
 async fn task_mesh(
@@ -104,18 +110,7 @@ async fn task_mesh(
     lora_miso: esp_hal::peripherals::GPIO11<'static>,
 ) {
     info!("initializing LoRa radio...");
-    let sx126x_config = lora_phy::sx126x::Config {
-        chip: lora_phy::sx126x::Sx1262,
-        // TODO are these the correct parameters?
-        tcxo_ctrl: Some(lora_phy::sx126x::TcxoCtrlVoltage::Ctrl1V7),
-        use_dcdc: false,
-        rx_boost: true,
-    };
-    // create a lora radio instance
-    let lora_interface = lora_phy::iv::GenericSx126xInterfaceVariant::new(
-        lora_reset, lora_dio, lora_busy, None, None,
-    )
-    .unwrap();
+    // create the SPI bus
     const SX1262_SPI_MHZ: u32 = 16; // recommended SPI frequency
     let lora_spi = esp_hal::spi::master::Spi::new(
         spi,
@@ -131,8 +126,18 @@ async fn task_mesh(
     let lora_spi_bus = LORA_SPI_BUS.init(Mutex::new(lora_spi));
     let lora_spi_device =
         embassy_embedded_hal::shared_bus::asynch::spi::SpiDevice::new(lora_spi_bus, lora_nss);
-    info!("LoRa interface initialized");
-
+    // create a lora radio instance
+    let sx126x_config = lora_phy::sx126x::Config {
+        chip: lora_phy::sx126x::Sx1262,
+        // TODO are these the correct parameters?
+        tcxo_ctrl: Some(lora_phy::sx126x::TcxoCtrlVoltage::Ctrl1V7),
+        use_dcdc: false,
+        rx_boost: true,
+    };
+    let lora_interface = lora_phy::iv::GenericSx126xInterfaceVariant::new(
+        lora_reset, lora_dio, lora_busy, None, None,
+    )
+    .unwrap();
     let mut lora_radio = lora_phy::LoRa::new(
         lora_phy::sx126x::Sx126x::new(lora_spi_device, lora_interface, sx126x_config),
         false,
@@ -146,9 +151,7 @@ async fn task_mesh(
         info!("running mesh...");
         Timer::after(Duration::from_secs(1)).await;
     }
-
 }
-
 
 // #[embassy_executor::task]
 // async fn task_ble_host(connector: esp_radio::ble::controller::BleConnector<'static>) {
